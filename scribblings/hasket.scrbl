@@ -32,8 +32,8 @@
 
 @section{语法}
 
-@defform[(>>> value catch-or-step ...)
-         #:literals ($)
+@defform[#:literals ($)
+         (>>> value catch-or-step ...)
          #:grammar ([catch-or-step catch step]
                     [catch ($ step ...)])]
 
@@ -41,8 +41,8 @@
 @racket[value]可以是任意值；@racket[step]则接受这个任意值，而必须使用@racket[Left]和@racket[Right]返回。
 @racket[(>>> value)]等同于@racket[value]。
 
-@deffrom[(lambda/match/curry maybe-contract (match-clause body ...) ...)
-         #:literals (!)
+@defform[#:literals (!)
+         (lambda/match/curry maybe-contract (match-clause body ...) ...)
          #:grammar ([maybe-contract (! contract-expr)])]
 @defform[(curry/n procedure arity)
          #:contracts ([arity exact-nonnegative-integer?]
