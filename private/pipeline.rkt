@@ -37,8 +37,8 @@
   ((_ value:expr) #'value))
 
 ;; 最后的结果会被解包
-(define-syntax-parse-rule (>>> val:expr step:expr ...)
-  (let ((result ((pipeline (unitP val) step ...) (add-branch (init)))))
+(define-syntax-parse-rule (>>> val:expr catch-or-step:expr ...)
+  (let ((result ((pipeline (unitP val) catch-or-step ...) (add-branch (init)))))
     (cond ((errorR? result) (errorR->hasket-exn result))
           (else (unitR-value result)))))
 
