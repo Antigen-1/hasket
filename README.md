@@ -1,3 +1,3 @@
 hasket
 ======
-README text here.
+haskell风格的自用小语言。
