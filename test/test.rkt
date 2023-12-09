@@ -1,0 +1,20 @@
+#lang hasket
+(require rackunit)
+
+(define tree '(a (b) c))
+(define a (lambda/curry/match ((v) (Right (add1 v)))))
+(define b (lambda (v)
+            (define x (string->number (exn-message (hasket-left-exn v))))
+            (if (zero? (remainder x 2)) (Right x) (Left (hasket-left-exn v)))))
+(define c (lambda (v) (if (zero? (remainder v 3)) (Right v) (Left (exn (format "~a" v) (current-continuation-marks))))))
+(define (refer tree p)
+  (foldl (lambda (i t) (list-ref t i)) tree p))
+(define r (lambda (v)
+            (define s (>>> v a ($ b) c))
+            (cond ((hasket-left? s)
+                   (list (refer tree (hasket-left-position s)) (exn-message (hasket-left-exn s))))
+                  (else (list #f s)))))
+
+(check-equal? (r 0) '(b "1"))
+(check-equal? (r 2) '(#f 3))
+(check-equal? (r 5) '(#f 6))
