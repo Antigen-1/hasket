@@ -1,4 +1,4 @@
-#lang typed/racket/base ;; 加速加速！！！
+#lang typed/racket/base/shallow ;; 加速加速！！！
 (provide (struct-out errorR)
          (struct-out unitR)
          (struct-out position)

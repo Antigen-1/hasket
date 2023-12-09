@@ -23,11 +23,11 @@
 
 @section{结构体}
 
-@defstruct[(exn:fail:hasket exn:fail) ([position (listof exact-nonnegative-integer?)])]
+@defstruct[hasket-left ([position (listof exact-nonnegative-integer?)] [exn exn?])]
 
 这个结构体是为了让用户更方便地处理异常。
 @tech{pipeline}中如果使用@racket[Left]报告了一个异常，不管最后是被catch还是返回，最终用户接触到的都是这个类型的结构体。
-原来的exception的内容保留为@racket[message]和@racket[continuation-marks]两个字段。
+原来的exception的内容保留为@racket[exn]这个字段。
 新的@racket[position]字段则提供了一个易于定位的位置编码（详情见源码）。
 
 @section{语法}
@@ -57,3 +57,9 @@
 这门语言导出了@racket[racket/base]的内容作为primitives。
 同时它与racket社区的其他许多工具可以无缝衔接。
 更准确来说，这门语言只是对racket作了扩展。
+
+@section{更新}
+
+@itemlist[
+          @item{2023.12.9 使用@racket[hasket-left]替换了原来的异常，这样就能保留异常的类型了。依然不直接使用@racket[errorR]，主要是保证数据抽象。}
+          ]

@@ -11,6 +11,6 @@
           (unitP Right)
           (errorP Left))
 
-         (struct-out exn:fail:hasket)
+         (struct-out hasket-left)
 
          (all-from-out racket/base))
