@@ -1,6 +1,6 @@
 #lang racket/base
 
-(module reader syntax/module-reader "./main.rkt")
+(module reader syntax/module-reader hasket)
 
 (require "private/pipeline.rkt" "private/curry.rkt" "private/monad.rkt")
 (provide >>>
