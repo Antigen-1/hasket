@@ -1,5 +1,5 @@
 #lang scribble/manual
-@require[@for-label[hasket racket/base]]
+@require[@for-label[hasket racket/base racket/contract]]
 
 @title{hasket}
 @author{zhanghao}
