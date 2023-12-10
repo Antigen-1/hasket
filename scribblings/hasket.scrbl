@@ -70,5 +70,5 @@
 
 @itemlist[
           @item{2023.12.9 使用@racket[hasket-left]替换了原来的异常，这样就能保留异常的类型了。依然不直接使用@racket[errorR]，主要是保证数据抽象。}
-          @item{2023.12.10 使用@racket[errorR]替换了@racket[hasket-left]，使用@racket[typed/racket]来处理position。}
+          @item{2023.12.10 使用@racket[errorR]替换了@racket[hasket-left]，使用@racket[typed/racket]来处理position。此外为@racket[lambda/curry/match]还添加了命名支持。}
           ]
