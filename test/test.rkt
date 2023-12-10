@@ -13,7 +13,7 @@
 (define r (lambda (v)
             (define s (>>> v a ($ b) c))
             (cond ((errorR? s)
-                   (list (refer tree (errorR-position s)) (exn-message (errorR-exn s))))
+                   (list (refer tree (errorR-position s)) (exn-message (errorR-exception s))))
                   (else (list #f s)))))
 
 (check-equal? (r 0) '(b "1"))
