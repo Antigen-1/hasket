@@ -4,11 +4,16 @@
 
 ;; 注意：整个模块都不支持关键字参数
 
+(begin-for-syntax
+  (define-splicing-syntax-class name
+    #:description "函数名"
+    (pattern (~seq ) #:with name #'temp)
+    (pattern (~seq #:name nm:id) #:with name #'nm)))
 (define-syntax-parser lambda/curry/match ;; match-lambda**不支持可变参数，因此这里不需要输入arity
-  [(_ ((~datum !) contract:expr) (match-clause:expr body:expr ...) ...) ;; 尽管match的模式可能是关键字，最外层依旧必须是list
-   #'(let () (define/contract temp contract (match-lambda** [match-clause body ...] ...)) (curry temp))]
-  [(_ (match-clause:expr body:expr ...) ...)
-   #'(let () (define temp (match-lambda** [match-clause body ...] ...)) (curry temp))])
+  [(_ nm:name ((~datum !) contract:expr) (match-clause:expr body:expr ...) ...) ;; 尽管match的模式可能是关键字，最外层依旧必须是list
+   #'(let () (define/contract nm.name contract (match-lambda** [match-clause body ...] ...)) (curry nm.name))]
+  [(_ nm:name (match-clause:expr body:expr ...) ...)
+   #'(let () (define nm.name (match-lambda** [match-clause body ...] ...)) (curry nm.name))])
 
 (begin-for-syntax
   (define-splicing-syntax-class curried-procedure-and-its-arity
@@ -28,6 +33,8 @@
 
 (module+ test
   (require rackunit)
+  (check-eq? 'curried:a (object-name (lambda/curry/match #:name a (! (-> void?)) (() (void)))))
+  (check-eq? 'curried:a (object-name (lambda/curry/match #:name a (() (void)))))
   (define n= (lambda/curry/match (! (-> integer? integer? boolean?)) ((i n) (= i n))))
   (check-true ((n= 1) 1))
   (define nn= (lambda/curry/match ((i n) (= i n))))
