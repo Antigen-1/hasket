@@ -10,7 +10,7 @@
          )
 
 ;; R
-(struct errorR ([exception : exn] [position : Position-Value]))
+(struct errorR ([value : Any] [position : Position-Value]))
 (struct unitR ([value : Any]))
 (define-type Result (U errorR unitR))
 (: bindR (-> Result (-> Any Result) Result))

@@ -23,11 +23,11 @@
 
 @section{结构体}
 
-@defstruct[errorR ([exception exn?] [position (listof exact-nonnegative-integer?)])]
+@defstruct[errorR ([value any/c] [position (listof exact-nonnegative-integer?)])]
 
 这个结构体是为了让用户更方便地处理异常。
 @tech{pipeline}中如果使用@racket[Left]报告了一个异常，不管最后是被catch还是返回，最终用户接触到的都是这个类型的结构体。
-原来的exception的内容保留为@racket[exception]这个字段。
+原来的内容保留为@racket[value]这个字段。
 新的@racket[position]字段则提供了一个易于定位的位置编码（详情见源码）。
 
 @section{语法}
@@ -70,5 +70,5 @@
 
 @itemlist[
           @item{2023.12.9 使用@racket[hasket-left]替换了原来的异常，这样就能保留异常的类型了。依然不直接使用@racket[errorR]，主要是保证数据抽象。}
-          @item{2023.12.10 使用@racket[errorR]替换了@racket[hasket-left]，使用@racket[typed/racket]来处理position。此外为@racket[lambda/curry/match]还添加了命名支持。}
+          @item{2023.12.10 使用@racket[errorR]替换了@racket[hasket-left]，同时取消了对@racket[errorR]的内容限制。使用@racket[typed/racket]来处理position。此外为@racket[lambda/curry/match]添加了命名支持。}
           ]
