@@ -11,6 +11,6 @@
           (unitP Right)
           (errorP Left))
 
-         (struct-out hasket-left)
+         (struct-out errorR)
 
          (all-from-out racket/base))

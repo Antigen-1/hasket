@@ -1,30 +1,38 @@
 #lang typed/racket/base/shallow ;; 加速加速！！！
+(require "position.rkt")
 (provide (struct-out errorR)
          (struct-out unitR)
-         (struct-out position)
+         flip-errorR
          unitP
          errorP
          bindP
          resetP
          )
 
-(struct errorR ([exception : exn] [position : position]))
+;; R
+(struct errorR ([exception : exn] [position : Position-Value]))
 (struct unitR ([value : Any]))
-(define-type Result #;R (U errorR unitR))
+(define-type Result (U errorR unitR))
 (: bindR (-> Result (-> Any Result) Result))
 (define (bindR value proc)
   (cond ((unitR? value) (proc (unitR-value value)))
         (else value)))
 
-(define-type Position #;P (-> position Result))
-(struct position ([value : Any]))
-(: unitP (-> Any (-> position unitR)))
+(: lift (-> (-> Position-Value Position-Value) (-> errorR errorR)))
+(define ((lift proc) e)
+  (struct-copy errorR e (position (proc (errorR-position e)))))
+(: flip-errorR (-> errorR errorR))
+(define flip-errorR (lift flip))
+
+;; P
+(define-type Position (-> Position-Value Result))
+(: unitP (-> Any (-> Position-Value unitR)))
 (define ((unitP a) p) (unitR a))
-(: errorP (-> exn (-> position errorR)))
+(: errorP (-> exn (-> Position-Value errorR)))
 (define ((errorP e) p) (errorR e p))
 (: bindP (-> Position (-> Any Position) Position))
 (define ((bindP m k) p) (bindR (m p) (lambda (v) ((k v) p))))
-(: resetP (-> position (-> Position Position)))
+(: resetP (-> Position-Value (-> Position Position)))
 (define (((resetP q) m) p) (m q))
 
 #|
