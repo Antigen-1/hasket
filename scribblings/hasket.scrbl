@@ -4,7 +4,7 @@
 @title{hasket}
 @author{zhanghao}
 
-@defmodule[hasket]
+@defmodule[hasket #:lang]
 
 @section{简介}
 
@@ -27,7 +27,7 @@
 
 这个结构体是为了让用户更方便地处理异常。
 @tech{pipeline}中如果使用@racket[Left]报告了一个异常，不管最后是被catch还是返回，最终用户接触到的都是这个类型的结构体。
-原来的exception的内容保留为@racket[exn]这个字段。
+原来的exception的内容保留为@racket[exception]这个字段。
 新的@racket[position]字段则提供了一个易于定位的位置编码（详情见源码）。
 
 @section{语法}
