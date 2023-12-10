@@ -42,7 +42,7 @@
 @racket[(>>> value)]等同于@racket[value]。
 
 @defform[#:literals (!)
-         (lambda/match/curry maybe-name maybe-contract (match-clause body ...) ...)
+         (lambda/curry/match maybe-name maybe-contract (match-clause body ...) ...)
          #:grammar ([maybe-name (code:line #:name name)]
                     [maybe-contract (! contract-expr)])]
 @defform[(curry/n procedure arity)
@@ -56,7 +56,7 @@
 这里主要就第一个作说明：
 
 @itemlist[
-          @item{@racket[maybe-name]可指定@racket[object-name]返回值，但由于柯里化，@racket[curry]会加前缀@racket[curried:]（默认为@racket[curried:temp]）。}
+          @item{@racket[maybe-name]可指定@racket[object-name]返回值，但由于柯里化，@racket[curry]会加前缀@racket[curried:]（默认为@racket['curried:temp]）。}
           @item{@racket[maybe-contract]指定的是未柯里化的函数的行为。}
           ]
 
