@@ -15,6 +15,8 @@
          errorP
          bindP
          #;resetP
+         mapP
+         joinP
          )
 
 ;; R
@@ -55,3 +57,10 @@ m `bindM` unitM = m
 Associative:
 m `bindM` (\a -> (k a) `bindM` h) = (m `bindM` (\a -> (k a)) `bindM` h)
 |#
+
+(: mapP (-> (-> Any Any) (Position Any Any) (Position Any Any)))
+(define (mapP f m)
+  (bindP m (lambda (a) (unitP (f a)))))
+(: joinP (-> (Position (Position Any Any) Any) (Position Any Any)))
+(define (joinP m)
+  (bindP m (lambda (a) (cast a (Position Any Any)))))

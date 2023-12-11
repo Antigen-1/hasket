@@ -1,10 +1,6 @@
 #lang racket/base
-(require "../private/monad.rkt" "../private/curry.rkt")
-(provide mapP joinP)
+(require "../private/monad.rkt" racket/function)
+(provide (rename-out (n:mapP mapP))
+         (except-out (all-from-out "../private/monad.rkt") mapP))
 
-(define mapP
-  (lambda/curry/match
-   #:name mapP
-   ((f m) (bindP m (lambda (a) (unitP (f a)))))))
-(define (joinP z)
-  (bindP z (lambda (m) m)))
+(define n:mapP (curry mapP))
