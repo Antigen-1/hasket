@@ -24,7 +24,7 @@
 @defproc[(mapP (proc (-> any/c any))) (-> any/c any)]
 @defproc[(joinP (m any/c)) any]
 
-@racket[mapM]和@racket[joinM]。
+@racket[mapM]和@racket[joinM]。其中@racket[mapP]是使用@racket[lambda/curry/match]柯里化的。
 
 @section{结构体}
 

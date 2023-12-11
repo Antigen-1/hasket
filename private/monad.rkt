@@ -15,8 +15,6 @@
          errorP
          bindP
          #;resetP
-         mapP
-         joinP
          )
 
 ;; R
@@ -57,11 +55,3 @@ m `bindM` unitM = m
 Associative:
 m `bindM` (\a -> (k a) `bindM` h) = (m `bindM` (\a -> (k a)) `bindM` h)
 |#
-
-;; curried monad functions
-(: mapP (-> (-> Any Any) (-> (Position Any Any) (Position Any Any))))
-(define ((mapP f) m)
-  (bindP m (lambda (a) (unitP (f a)))))
-(: joinP (-> (Position (Position Any Any) Any) (Position Any Any)))
-(define (joinP z)
-  (bindP z (lambda (m) (cast m (Position Any Any)))))

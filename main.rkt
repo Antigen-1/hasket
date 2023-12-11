@@ -2,7 +2,8 @@
 
 (module reader syntax/module-reader hasket)
 
-(require "private/pipeline.rkt" "private/curry.rkt" "private/monad.rkt" "private/compose.rkt")
+(require "private/pipeline.rkt" "private/curry.rkt" "private/monad.rkt" "private/compose.rkt"
+         "base/monad.rkt")
 (provide >>>
          lambda/curry/match
          curry/n

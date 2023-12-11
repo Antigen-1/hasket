@@ -1,5 +1,7 @@
 #lang racket/base
-(require racket/function racket/contract racket/match syntax/parse/define (for-syntax racket/base racket/list))
+(require racket/function racket/contract racket/match
+         syntax/parse/define
+         (for-syntax racket/base racket/list))
 (provide lambda/curry/match curry/n)
 
 ;; 注意：整个模块都不支持关键字参数
