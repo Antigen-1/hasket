@@ -59,7 +59,7 @@ m `bindM` (\a -> (k a) `bindM` h) = (m `bindM` (\a -> (k a)) `bindM` h)
 |#
 
 ;; curried monad functions
-(: mapP (-> (-> Any (Position Any Any)) (-> (Position Any Any) (Position Any Any))))
+(: mapP (-> (-> Any Any) (-> (Position Any Any) (Position Any Any))))
 (define ((mapP f) m)
   (bindP m (lambda (a) (unitP (f a)))))
 (: joinP (-> (Position (Position Any Any) Any) (Position Any Any)))
