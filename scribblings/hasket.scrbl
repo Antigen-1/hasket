@@ -1,5 +1,5 @@
 #lang scribble/manual
-@require[@for-label[hasket racket/base racket/contract racket/function]]
+@require[@for-label[hasket (except-in racket/base #%app) racket/contract racket/function]]
 
 @title{hasket}
 @author{zhanghao}
