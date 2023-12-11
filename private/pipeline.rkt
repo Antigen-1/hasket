@@ -30,6 +30,6 @@
   (check-true (errorR? (>>> 0 (lambda (v) (errorP (exn (format "~a" v) (current-continuation-marks)))))))
   (check-true (>>> 0 ($ (lambda (v) (unitP (errorR? v)))) (lambda (v) (errorP (exn (format "~a" v) (current-continuation-marks))))))
   (>>> 0
-       ($ (lambda (v) (unitP (check-equal? '(1) (errorR-position v)))))
+       ($ (lambda (v) (unitP (check-equal? '(1) (at-position (errorR-value v))))))
        (lambda (v) (errorP (exn (format "~a" v) (current-continuation-marks)))))
   )

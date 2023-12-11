@@ -4,7 +4,7 @@
 (define tree '(a (b) c))
 (define a (lambda (v) (Right (add1 v))))
 (define b (lambda/curry/match
-           (((errorR (exn str cm) position))
+           (((errorR (at (exn str cm) _)))
             (define x (string->number str))
             (if (zero? (remainder x 2)) (Right x) (Left (exn str cm))))))
 (define c (lambda (v) (if (zero? (remainder v 3)) (Right v) (Left (exn (format "~a" v) (current-continuation-marks))))))
@@ -13,9 +13,12 @@
 (define r (lambda (v)
             (define s (>>> v a ($ b) c))
             (cond ((errorR? s)
-                   (list (refer tree (errorR-position s)) (exn-message (errorR-value s))))
+                   (list (refer tree (at-position (errorR-value s))) (exn-message (at-value (errorR-value s)))))
                   (else (list #f s)))))
 
 (check-equal? (r 0) '(b "1"))
 (check-equal? (r 2) '(#f 3))
 (check-equal? (r 5) '(#f 6))
+
+(check-true (>>> 0 (lambda (_) ((mapP zero?) (Right 0)))))
+(check-true (>>> 0 (lambda (_) (joinP (Right (Right #t))))))

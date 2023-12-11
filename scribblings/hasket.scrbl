@@ -21,14 +21,23 @@
 
 这两个函数分别用于在@tech{pipeline}中报错和返回，没有提供直接处理其返回值的工具，因此一般来说在@tech{pipeline}以外使用这两个函数是无意义的。
 
+@defproc[(mapP (proc (-> any/c any))) (-> any/c any)]
+@defproc[(joinP (m any/c)) any]
+
+@racket[mapM]和@racket[joinM]。
+
 @section{结构体}
 
-@defstruct[errorR ([value any/c] [position (listof exact-nonnegative-integer?)])]
+@defstruct[errorR ([value any/c])]
 
 这个结构体是为了让用户更方便地处理异常。
 @tech{pipeline}中如果使用@racket[Left]报告了一个异常，不管最后是被catch还是返回，最终用户接触到的都是这个类型的结构体。
-原来的内容保留为@racket[value]这个字段。
-新的@racket[position]字段则提供了一个易于定位的位置编码（详情见源码）。
+@racket[value]这个字段一般为@racket[at]结构体的实例。
+
+@defstruct[at ([value any/c] [position (listof exact-nonnegative-integer?)])]
+
+@racket[value]字段为传递给@racket[Left]的值。
+@racket[position]字段则提供了一个易于定位的位置编码（详情见源码）。
 
 @section{语法}
 
@@ -60,6 +69,13 @@
           @item{@racket[maybe-contract]指定的是未柯里化的函数的行为。}
           ]
 
+@defform[(#%app . pair)
+         #:grammar ([pair proc+args procs]
+                    [proc+args (proc arg ...)]
+                    [procs (first-proc . second-proc)])]
+
+支持了composition。
+
 @section{兼容性}
 
 这门语言导出了@racket[racket/base]的内容作为primitives。
@@ -71,4 +87,5 @@
 @itemlist[
           @item{2023.12.9 使用@racket[hasket-left]替换了原来的异常，这样就能保留异常的类型了。依然不直接使用@racket[errorR]，主要是保证数据抽象。}
           @item{2023.12.10 使用@racket[errorR]替换了@racket[hasket-left]，同时取消了对@racket[errorR]的内容限制。使用@racket[typed/racket]来处理position。此外为@racket[lambda/curry/match]添加了命名支持。}
+          @item{2023.12.11 添加了haskell-style的复合函数，添加了@racket[joinP]和@racket[mapP]，修复了一些bug。}
           ]
