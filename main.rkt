@@ -8,6 +8,7 @@
          lambda/curry/match
          curry/n
          #%app
+         pipeline
 
          (rename-out
           (unitP Right)

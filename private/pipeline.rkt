@@ -4,7 +4,7 @@
          syntax/parse/define
 
          (for-syntax racket/base))
-(provide >>>)
+(provide >>> pipeline)
 
 (define-syntax-parser pipeline
   ((_ value:expr ((~datum $) body:expr ...) next:expr ...)

@@ -45,10 +45,15 @@
          (>>> value catch-or-step ...)
          #:grammar ([catch-or-step catch step]
                     [catch ($ step ...)])]
+@defform[#:literals ($)
+         (pipeline value catch-or-step ...)
+         #:grammar ([catch-or-step catch step]
+                    [catch ($ step ...)])]
 
-这个语法实现了@deftech{pipeline}。
+这些语法实现了@deftech{pipeline}。
 @racket[value]可以是任意值；@racket[step]则接受这个任意值，而必须使用@racket[Left]和@racket[Right]返回。
-@racket[(>>> value)]等同于@racket[value]。
+
+@racket[pipeline]的功能是建立复合的@racket[step]。@racket[>>>]则将@racket[step]组合起来，形成易于与@racket[racket]交互的@racket[pipeline]。
 
 @defform[#:literals (!)
          (lambda/curry/match maybe-name maybe-contract (match-clause body ...) ...)
@@ -88,4 +93,5 @@
           @item{2023.12.9 使用@racket[hasket-left]替换了原来的异常，这样就能保留异常的类型了。依然不直接使用@racket[errorR]，主要是保证数据抽象。}
           @item{2023.12.10 使用@racket[errorR]替换了@racket[hasket-left]，同时取消了对@racket[errorR]的内容限制。使用@racket[typed/racket]来处理position。此外为@racket[lambda/curry/match]添加了命名支持。}
           @item{2023.12.11 添加了haskell-style的复合函数，添加了@racket[joinP]和@racket[mapP]，修复了一些bug。}
+          @item{2023.12.12 导出了@racket[pipeline]。}
           ]
