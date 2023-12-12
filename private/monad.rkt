@@ -14,7 +14,7 @@
          unitP
          errorP
          bindP
-         #;resetP
+         resetP
          mapP
          joinP
          )
@@ -37,8 +37,8 @@
 (define ((errorP e) p) (errorR (at e p)))
 (: bindP (-> (Position Any Any) (-> Any (Position Any Any)) (Position Any Any)))
 (define ((bindP m k) p) ((inst bindR Any (At Any)) (m p) (lambda (v) ((k v) p))))
-#;(: resetP (All (a b) (-> Position-Value (-> (Position a b) (Position a b)))))
-#;(define (((resetP q) m) p) (m q))
+(: resetP (All (a b) (-> Position-Value (-> (Position a b) (Position a b)))))
+(define (((resetP q) m) p) (m q))
 
 (: liftA (All (a) (-> (-> Position-Value Position-Value) (-> (At a) (At a)))))
 (define ((liftA proc) a)
