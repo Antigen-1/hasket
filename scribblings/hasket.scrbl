@@ -51,9 +51,10 @@
                     [catch ($ step ...)])]
 
 这些语法实现了@deftech{pipeline}。
-@racket[value]可以是任意值；@racket[step]则接受这个任意值，而必须使用@racket[Left]和@racket[Right]返回。
+@racket[value]可以是任意值（对于@racket[pipeline]必须使用@racket[Right]封装）；@racket[step]则接受这个任意值，而必须使用@racket[Left]和@racket[Right]返回。
 
-@racket[pipeline]的功能是建立复合的@racket[step]（但必须要提供@racket[value]，对于这一点可以使用函数封装）。
+@racket[pipeline]的功能是建立复合的@racket[step]
+（但必须要提供@racket[value]，对于这一点可以使用函数封装，从@racket[value]及其返回值的角度讲，它是符合@italic{closure property}的）。
 @racket[>>>]则将@racket[step]组合起来，形成易于与@racket[racket]交互的@racket[pipeline]。
 
 @defform[#:literals (!)
