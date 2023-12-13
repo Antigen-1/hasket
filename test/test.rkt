@@ -11,7 +11,7 @@
 (define (refer tree p)
   (foldl (lambda (i t) (list-ref t i)) tree p))
 (define r (lambda (v)
-            (define s (>>> v a ($ b) c))
+            (define s (>>> v (>>>/steps a ($ b) c)))
             (cond ((errorR? s)
                    (list (refer tree (at-position (errorR-value s))) (exn-message (at-value (errorR-value s)))))
                   (else (list #f s)))))
