@@ -54,7 +54,7 @@
 @racket[value]可以是任意值；@racket[step]则接受这个任意值，而必须使用@racket[Left]和@racket[Right]返回。
 
 @racket[>>>/steps]的功能是建立复合的@racket[step]。
-@racket[>>>]则将@racket[step]组合起来，形成易于与@racket[racket]交互的@racket[pipeline]。
+@racket[>>>]则将@racket[step]组合起来，形成易于与@racket[racket]交互的@tech[pipeline]。
 
 @defform[#:literals (!)
          (lambda/curry/match maybe-name maybe-contract (match-clause body ...) ...)
