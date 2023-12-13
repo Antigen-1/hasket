@@ -1,5 +1,5 @@
 #lang racket/base
-(require "monad.rkt" "position.rkt"
+(require "../private/monad.rkt" "../private/position.rkt"
 
          syntax/parse/define
 

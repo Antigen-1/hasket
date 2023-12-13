@@ -2,22 +2,9 @@
 
 (module reader syntax/module-reader hasket)
 
-(require "private/pipeline.rkt" "private/curry.rkt" "private/compose.rkt"
-         "base/monad.rkt")
-(provide >>>
-         lambda/curry/match
-         curry/n
-         #%app
-         >>>/steps
-
-         (rename-out
-          (unitP Right)
-          (errorP Left))
-
-         (struct-out errorR)
-         (struct-out at)
-
-         mapP
-         joinP
-
+(require "base/pipeline.rkt" "base/curry.rkt" "base/compose.rkt" "base/monad.rkt")
+(provide (all-from-out "base/pipeline.rkt")
+         (all-from-out "base/curry.rkt")
+         (all-from-out "base/compose.rkt")
+         (all-from-out "base/monad.rkt")
          (all-from-out racket/base))
