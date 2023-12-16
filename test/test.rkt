@@ -22,3 +22,5 @@
 
 (check-true (>>> 0 (lambda (_) ((mapP zero?) (Right 0)))))
 (check-true (>>> 0 (lambda (_) (joinP (Right (Right #t))))))
+
+(check-true (zero? ((add1 . sub1) 0)))

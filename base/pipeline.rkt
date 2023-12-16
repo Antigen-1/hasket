@@ -3,11 +3,12 @@
 
          syntax/parse/define
 
-         (for-syntax racket/base))
-(provide >>> >>>/steps)
+         (for-syntax racket/base "../private/optimize.rkt"))
+(provide >>> >>>/steps $)
 
+(define-syntax $ #f)
 (define-syntax-parser pipeline
-  ((_ value:expr ((~datum $) body:expr ...) next:expr ...)
+  ((_ value:expr ((~literal $) body:expr ...) next:expr ...)
    #'(lambda (p)
        (define new ((pipeline value next ...) (increment p)))
        (cond ((errorR? new) ((pipeline (unitP (flip-errorR new)) body ...) (add-branch p)))
@@ -16,23 +17,57 @@
    #'(bindP (bindP value first) (lambda (new) (lambda (p) ((pipeline (unitP new) next ...) (increment p))))))
   ((_ value:expr) #'value))
 
+(begin-for-syntax
+  (define optimize (make-pipeline-optimizer
+                    #'>>>
+                    #'>>>/steps
+                    #'errorP
+                    #'unitP
+                    #'$)))
+
 ;; 最后的结果会被解包
-(define-syntax-parse-rule (>>> val:expr catch-or-step:expr ...)
-  (let ((result ((pipeline (unitP val) catch-or-step ...) (init))))
-    (cond ((errorR? result) (flip-errorR result))
-          (else (unitR-value result)))))
+(define-syntax (>>> stx)
+  (syntax-parse (optimize stx)
+    ((_ val:expr first:expr catch-or-step:expr ...)
+     #'(let ((result ((pipeline (unitP val) first catch-or-step ...) (init))))
+         (cond ((errorR? result) (flip-errorR result))
+               (else (unitR-value result)))))
+    (v #'v)))
 
 #|
 本来想直接改pipeline的，但pipeline的value是(-> position-value result)
 而我想要的composition要求的value是any
 |#
-(define-syntax-parse-rule (>>>/steps catch-or-step:expr ...)
-  (lambda (value)
-    (pipeline (unitP value) catch-or-step ...)))
+(define-syntax (>>>/steps stx)
+  (syntax-parse (optimize stx)
+    ((_ first:expr catch-or-step:expr ...)
+     #'(lambda (value)
+         (pipeline (unitP value) first catch-or-step ...)))
+    (v #'v)))
 
 (module+ test
   (require rackunit)
 
+  (define-namespace-anchor anchor)
+  (parameterize ((current-namespace (namespace-anchor->namespace anchor)))
+    ;; Initialize the namespace
+    (void (expand '(>>> 0))))
+  (parameterize ((current-namespace (namespace-anchor->namespace anchor)))
+    (define l '(>>> 0 ($ (>>>/steps unitP))))
+    (displayln "Original:")
+    (writeln l)
+    (displayln "Expanded:")
+    (define d (syntax->datum (time (expand l))))
+    (writeln d)
+    (check-true (zero? (cadr d))))
+  (parameterize ((current-namespace (namespace-anchor->namespace anchor)))
+    (define l '(>>> 0 (>>>/steps ($ (>>>/steps unitP)))))
+    (displayln "Original:")
+    (writeln l)
+    (displayln "Expanded:")
+    (define d (syntax->datum (time (expand l))))
+    (writeln d)
+    (check-true (zero? (cadr d))))
   (check-true (zero? (>>> 0)))
   (check-true (zero? (>>> 0 unitP)))
   (check-true (errorR? (>>> 0 (lambda (v) (errorP (exn (format "~a" v) (current-continuation-marks)))))))

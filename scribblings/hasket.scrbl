@@ -56,6 +56,8 @@
 @racket[>>>/steps]的功能是建立复合的@racket[step]。
 @racket[>>>]则将@racket[step]组合起来，形成易于与@racket[racket]交互的@tech{pipeline}。
 
+另外要注意，@racket[$]是一个关键字，请不要@italic{shallow}其绑定。
+
 @defform[#:literals (!)
          (lambda/curry/match maybe-name maybe-contract (match-clause body ...) ...)
          #:grammar ([maybe-name (code:line #:name name)]
@@ -94,5 +96,5 @@
           @item{2023.12.9 使用@racket[hasket-left]替换了原来的异常，这样就能保留异常的类型了。依然不直接使用@racket[errorR]，主要是保证数据抽象。}
           @item{2023.12.10 使用@racket[errorR]替换了@racket[hasket-left]，同时取消了对@racket[errorR]的内容限制。使用@racket[typed/racket]来处理position。此外为@racket[lambda/curry/match]添加了命名支持。}
           @item{2023.12.11 添加了haskell-style的复合函数，添加了@racket[joinP]和@racket[mapP]，修复了一些bug。}
-          @item{2023.12.12 实现了@racket[step]的composition。}
+          @item{2023.12.17 为@tech{pipeline}实现了一个优化器，同时导出了@racket[$]。}
           ]
