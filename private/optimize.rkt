@@ -32,13 +32,14 @@
                                    sts))) ;; 递归进入复合步骤，将没有catcher或没有step的复合步骤合并入步骤列表
     (define more (map (lambda (st) (match (syntax-e st) (`(,prefix ,body ...) #:when (identifier=catch? prefix) (datum->syntax st `(,prefix ,@(optimize-catch-or-steps body)))) (_ st))) appended)) ;; 递归进入catcher
     (filter-not identifier=Right? ;; Right相当于values
-                (take-until (dropf-right more (lambda (st) (not (step? st)))) ;; 末尾的catcher没有意义
+                (take-until (dropf-right more catcher?) ;; 末尾的catcher没有意义
                             identifier=Left?) ;; Left之后的永远不会执行
                 ))
 
   (define (step? st) (match (syntax-e st) (`(,prefix ,body ...) #:when (identifier=catch? prefix) #f) (_ #t)))
+  (define (catcher? st) (not (step? st)))
   (define (no-catcher? sts)
-    (null? (filter (lambda (st) (not (step? st))) sts)))
+    (null? (filter catcher? sts)))
 
   (define (maybe-literalize s)
     (return-if/else s (lambda (s) (pair? (syntax->datum s))) (list 'quote s)))
