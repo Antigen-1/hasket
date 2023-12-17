@@ -68,6 +68,8 @@
     (define d (syntax->datum (time (expand l))))
     (writeln d)
     (check-true (zero? (cadr d))))
+  (let ((a (>>>/steps)))
+    (check-true (zero? (>>> 0 a))))
   (check-true (zero? (>>> 0)))
   (check-true (zero? (>>> 0 unitP)))
   (check-true (errorR? (>>> 0 (lambda (v) (errorP (exn (format "~a" v) (current-continuation-marks)))))))

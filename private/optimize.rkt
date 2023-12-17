@@ -68,5 +68,5 @@
      (datum->syntax stx (let/cc cc `(,op ,v ,@(return-if/else (optimize-catch-or-steps sts) (lambda (sts) (not (null? sts))) (cc (maybe-literalize v))))))) ;; 如果没有step，直接返回输入值
     (`(,op ,sts ...)
      #:when (identifier=>>>/steps? op)
-     (datum->syntax stx `(,op ,@(optimize-catch-or-steps sts))))
+     (let/cc cc (datum->syntax stx `(,op ,@(return-if/else (optimize-catch-or-steps sts) (lambda (sts) (not (null? sts))) (cc Right))))))
     (_ stx)))
