@@ -1,5 +1,5 @@
 #lang racket/base
-(require racket/match racket/list)
+(require racket/match racket/list (for-syntax racket/base))
 (provide make-pipeline-optimizer)
 
 ;; Utilities
@@ -14,6 +14,18 @@
     (cond ((pred result) result)
           (else else-body ...))))
 
+;; Passes
+(define-syntax (passes stx)
+  (syntax-case stx ()
+    ((_ first others ...)
+     (with-syntax ((it (car (syntax-e (syntax-local-introduce #'(it stx)))))) ;; 只开放it
+      #'(let ((next (passes others ...))) ;; 避免ambiguous binding
+          (lambda (it)
+            (define result first)
+            (next result)))))
+    ((_)
+     #'values)))
+
 (define ((make-pipeline-optimizer >>> >>>/steps Left Right catch) stx)
   (define-values (identifier=>>>?
                   identifier=>>>/steps?
@@ -22,19 +34,25 @@
                   identifier=catch?)
     (apply values (map make-identifier=? (list >>> >>>/steps Left Right catch))))
 
-  (define (optimize-catch-or-steps sts)
-    (define appended (flatten (map (lambda (st) (match (syntax-e st)
-                                                  (`(,op ,sts ...)
-                                                   #:when (identifier=>>>/steps? op)
-                                                   (define opt (optimize-catch-or-steps sts))
-                                                   (return-if/else opt no-catcher? (datum->syntax st `(,op ,@opt))))
-                                                  (_ st)))
-                                   sts))) ;; 递归进入复合步骤，将没有catcher或没有step的复合步骤合并入步骤列表
-    (define more (map (lambda (st) (match (syntax-e st) (`(,prefix ,body ...) #:when (identifier=catch? prefix) (datum->syntax st `(,prefix ,@(optimize-catch-or-steps body)))) (_ st))) appended)) ;; 递归进入catcher
-    (filter-not identifier=Right? ;; Right相当于values
-                (take-until (dropf-right more catcher?) ;; 末尾的catcher没有意义
-                            identifier=Left?) ;; Left之后的永远不会执行
-                ))
+  (define optimize-catch-or-steps
+    (passes
+     ;; 递归进入复合步骤，将没有catcher或没有step的复合步骤inline入上级步骤列表
+     (flatten (map (lambda (st) (match (syntax-e st)
+                                  (`(,op ,sts ...)
+                                   #:when (identifier=>>>/steps? op)
+                                   (define opt (optimize-catch-or-steps sts))
+                                   (return-if/else opt no-catcher? (datum->syntax st `(,op ,@opt))))
+                                  (_ st)))
+                   it))
+     ;; 递归进入catcher
+     (map (lambda (st) (match (syntax-e st) (`(,prefix ,body ...) #:when (identifier=catch? prefix) (datum->syntax st `(,prefix ,@(optimize-catch-or-steps body)))) (_ st))) it)
+     ;; 末尾的catcher没有意义
+     (dropf-right it catcher?)
+     ;; Left之后的永远不会执行
+     (take-until it identifier=Left?)
+     ;; Right相当于values
+     (filter-not identifier=Right? it)
+     ))
 
   (define (step? st) (match (syntax-e st) (`(,prefix ,body ...) #:when (identifier=catch? prefix) #f) (_ #t)))
   (define (catcher? st) (not (step? st)))
