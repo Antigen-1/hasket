@@ -80,10 +80,10 @@
 @defform[(#%app . pair)
          #:grammar ([pair proc+args procs]
                     [proc+args (proc arg ...)]
-                    [procs (first-proc . second-proc)]
-                    [second-proc id (lambda p ...) (lambda/curry/match p ...)])]
+                    [procs (then-proc ... . first-proc)]
+                    [first-proc id (lambda p ...) (lambda/curry/match p ...)])]
 
-支持了函数组合，类似于@racket[compose1]。
+支持了函数组合，实际上是@racket[compose1]的别名。第一个函数对racket的reader作了一些妥协。
 
 @section{兼容性}
 
