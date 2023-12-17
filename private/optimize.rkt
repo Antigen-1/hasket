@@ -36,6 +36,12 @@
 
   (define optimize-catch-or-steps
     (passes
+     ;; Right相当于values
+     (filter-not identifier=Right? it)
+     ;; Left之后的永远不会执行
+     (take-until it identifier=Left?)
+     ;; 末尾的catcher没有意义
+     (dropf-right it catcher?)
      ;; 递归进入复合步骤，将没有catcher或没有step的复合步骤inline入上级步骤列表
      (flatten (map (lambda (st) (match (syntax-e st)
                                   (`(,op ,sts ...)
@@ -46,12 +52,6 @@
                    it))
      ;; 递归进入catcher
      (map (lambda (st) (match (syntax-e st) (`(,prefix ,body ...) #:when (identifier=catch? prefix) (datum->syntax st `(,prefix ,@(optimize-catch-or-steps body)))) (_ st))) it)
-     ;; 末尾的catcher没有意义
-     (dropf-right it catcher?)
-     ;; Left之后的永远不会执行
-     (take-until it identifier=Left?)
-     ;; Right相当于values
-     (filter-not identifier=Right? it)
      ))
 
   (define (step? st) (match (syntax-e st) (`(,prefix ,body ...) #:when (identifier=catch? prefix) #f) (_ #t)))
@@ -69,4 +69,4 @@
     (`(,op ,sts ...)
      #:when (identifier=>>>/steps? op)
      (let/cc cc (datum->syntax stx `(,op ,@(return-if/else (optimize-catch-or-steps sts) (lambda (sts) (not (null? sts))) (cc Right))))))
-    (_ stx)))
+    (_ (raise-syntax-error #f "Ill-formed expression" stx))))

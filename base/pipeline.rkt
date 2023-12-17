@@ -28,8 +28,8 @@
 ;; 最后的结果会被解包
 (define-syntax (>>> stx)
   (syntax-parse (optimize stx)
-    ((_ val:expr first:expr catch-or-step:expr ...)
-     #'(let ((result ((pipeline (unitP val) first catch-or-step ...) (init))))
+    (((~literal >>>) val:expr catch-or-step:expr ...)
+     #'(let ((result ((pipeline (unitP val) catch-or-step ...) (init))))
          (cond ((errorR? result) (flip-errorR result))
                (else (unitR-value result)))))
     (v #'v)))
@@ -40,9 +40,9 @@
 |#
 (define-syntax (>>>/steps stx)
   (syntax-parse (optimize stx)
-    ((_ first:expr catch-or-step:expr ...)
+    (((~literal >>>/steps) catch-or-step:expr ...)
      #'(lambda (value)
-         (pipeline (unitP value) first catch-or-step ...)))
+         (pipeline (unitP value) catch-or-step ...)))
     (v #'v)))
 
 (module+ test
@@ -50,10 +50,9 @@
 
   (define-namespace-anchor anchor)
   (parameterize ((current-namespace (namespace-anchor->namespace anchor)))
-    ;; Initialize the namespace
-    (void (expand '(>>> 0))))
+    (check-exn exn:fail:syntax? (lambda () (expand '(>>>)))))
   (parameterize ((current-namespace (namespace-anchor->namespace anchor)))
-    (define l '(>>> 0 ($ (>>>/steps unitP))))
+    (define l '(>>> 0 ($ unitP) unitP unitP))
     (displayln "Original:")
     (writeln l)
     (displayln "Expanded:")
