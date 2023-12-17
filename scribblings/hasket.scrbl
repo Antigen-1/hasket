@@ -80,9 +80,10 @@
 @defform[(#%app . pair)
          #:grammar ([pair proc+args procs]
                     [proc+args (proc arg ...)]
-                    [procs (first-proc . second-proc)])]
+                    [procs (first-proc . second-proc)]
+                    [second-proc id (lambda p ...) (lambda/curry/match p ...)])]
 
-支持了composition。
+支持了函数组合，类似于@racket[compose1]。
 
 @section{兼容性}
 
@@ -96,5 +97,5 @@
           @item{2023.12.9 使用@racket[hasket-left]替换了原来的异常，这样就能保留异常的类型了。依然不直接使用@racket[errorR]，主要是保证数据抽象。}
           @item{2023.12.10 使用@racket[errorR]替换了@racket[hasket-left]，同时取消了对@racket[errorR]的内容限制。使用@racket[typed/racket]来处理position。此外为@racket[lambda/curry/match]添加了命名支持。}
           @item{2023.12.11 添加了haskell-style的复合函数，添加了@racket[joinP]和@racket[mapP]，修复了一些bug。}
-          @item{2023.12.17 为@tech{pipeline}实现了一个优化器，同时导出了@racket[$]。}
+          @item{2023.12.17 为@tech{pipeline}实现了一个优化器，同时导出了@racket[$]。扩展了函数组合的语法。}
           ]
