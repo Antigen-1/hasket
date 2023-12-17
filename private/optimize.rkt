@@ -23,23 +23,21 @@
     (apply values (map make-identifier=? (list >>> >>>/steps Left Right catch))))
 
   (define (optimize-catch-or-steps sts)
-    (define sts/null (if (no-step? sts) null sts)) ;; 没有step，直接返回null
     (define appended (flatten (map (lambda (st) (match (syntax-e st)
                                                   (`(,op ,sts ...)
                                                    #:when (identifier=>>>/steps? op)
                                                    (define opt (optimize-catch-or-steps sts))
-                                                   (return-if/else opt all-step? (datum->syntax st `(,op ,@opt))))
+                                                   (return-if/else opt no-catcher? (datum->syntax st `(,op ,@opt))))
                                                   (_ st)))
-                                   sts/null))) ;; 递归进入复合步骤，将没有catcher或没有step的复合步骤合并入步骤列表
+                                   sts))) ;; 递归进入复合步骤，将没有catcher或没有step的复合步骤合并入步骤列表
     (define more (map (lambda (st) (match (syntax-e st) (`(,prefix ,body ...) #:when (identifier=catch? prefix) (datum->syntax st `(,prefix ,@(optimize-catch-or-steps body)))) (_ st))) appended)) ;; 递归进入catcher
     (filter-not identifier=Right? ;; Right相当于values
-                (take-until more identifier=Left?) ;; Left之后的永远不会执行
+                (take-until (dropf-right more (lambda (st) (not (step? st)))) ;; 末尾的catcher没有意义
+                            identifier=Left?) ;; Left之后的永远不会执行
                 ))
 
   (define (step? st) (match (syntax-e st) (`(,prefix ,body ...) #:when (identifier=catch? prefix) #f) (_ #t)))
-  (define (no-step? sts)
-    (null? (filter step? sts)))
-  (define (all-step? sts)
+  (define (no-catcher? sts)
     (null? (filter (lambda (st) (not (step? st))) sts)))
 
   (define (maybe-literalize s)
