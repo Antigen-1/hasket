@@ -8,6 +8,7 @@
     (pattern second:id)
     (pattern ((~literal lambda) p ...))
     (pattern ((~literal lambda/curry/match) p ...))
+    (pattern ((~literal curry/n) p ...))
     ))
 (define-syntax-parser n:#%app
   ((_ . (then:expr ... . first:first-procedure))
@@ -21,4 +22,5 @@
   (check-true ((n:#%app zero? . (lambda (v) (sub1 v))) 1))
   (check-true ((n:#%app zero? . (lambda/curry/match ((v) (sub1 v)))) 1))
   (check-true ((n:#%app zero? sub1 . add1) 0))
+  (check-true ((n:#%app zero? sub1 . (curry/n + 1)) 1))
   )

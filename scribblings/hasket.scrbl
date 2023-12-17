@@ -77,11 +77,12 @@
           @item{@racket[maybe-contract]指定的是未柯里化的函数的行为。}
           ]
 
-@defform[(#%app . pair)
+@defform[#:literals (lambda lambda/curry/match curry/n)
+         (#%app . pair)
          #:grammar ([pair proc+args procs]
                     [proc+args (proc arg ...)]
                     [procs (then-proc ... . first-proc)]
-                    [first-proc id (lambda p ...) (lambda/curry/match p ...)])]
+                    [first-proc id (lambda p ...) (lambda/curry/match p ...) (curry/n p ...)])]
 
 支持了函数组合，实际上是@racket[compose1]的别名。第一个函数对racket的reader作了一些妥协。
 
