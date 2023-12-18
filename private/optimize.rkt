@@ -1,5 +1,5 @@
 #lang racket/base
-(require racket/match racket/list (for-syntax racket/base))
+(require racket/match racket/list "pipeline.rkt" "monad.rkt" (for-syntax racket/base))
 (provide make-pipeline-optimizer)
 
 ;; Utilities
@@ -17,16 +17,11 @@
 ;; Passes
 (define-syntax (passes stx)
   (syntax-case stx ()
-    ((_ first others ...)
-     (with-syntax ((it (car (syntax-e (syntax-local-introduce #'(it stx)))))) ;; 只开放it
-      #'(let ((next (passes others ...))) ;; 避免ambiguous binding
-          (lambda (it)
-            (define result first)
-            (next result)))))
-    ((_)
-     #'values)))
+    ((_ step ...)
+     (with-syntax ((it (car (syntax-e (syntax-local-introduce #'(it stx))))))
+       #'(lambda (v) (>>> v (lambda (it) (unitP step)) ...))))))
 
-(define ((make-pipeline-optimizer >>> >>>/steps Left Right catch) stx)
+(define ((make-pipeline-optimizer >>> >>>/steps o:>>> o:>>>/steps Left Right catch) stx)
   (define-values (identifier=>>>?
                   identifier=>>>/steps?
                   identifier=Left?
@@ -40,8 +35,10 @@
      (flatten (map (lambda (st) (match (syntax-e st)
                                   (`(,op ,sts ...)
                                    #:when (identifier=>>>/steps? op)
-                                   (define opt (optimize-catch-or-steps sts))
-                                   (return-if/else opt no-catcher? (datum->syntax st `(,op ,@opt))))
+                                   (define opt ((make-pipeline-optimizer >>> >>>/steps o:>>> o:>>>/steps Left Right catch) st))
+                                   (return-if/else opt
+                                                   (lambda (v) (or (identifier=Right? v) (has-catcher? (cdr (syntax->list v)))))
+                                                   (cdr (syntax->list opt))))
                                   (_ st)))
                    it))
      ;; 递归进入catcher
@@ -57,14 +54,14 @@
 
   (define (step? st) (match (syntax-e st) (`(,prefix ,body ...) #:when (identifier=catch? prefix) #f) (_ #t)))
   (define (catcher? st) (not (step? st)))
-  (define (no-catcher? sts)
-    (null? (filter catcher? sts)))
+  (define (has-catcher? sts)
+    (not (null? (filter catcher? sts))))
 
   (match (syntax-e stx)
     (`(,op ,v ,sts ...)
      #:when (identifier=>>>? op)
-     (datum->syntax stx (let/cc cc `(,op ,v ,@(return-if/else (optimize-catch-or-steps sts) (lambda (sts) (not (null? sts))) (cc v)))))) ;; 如果没有step，直接返回输入值
+     (datum->syntax stx (let/cc cc `(,o:>>> ,v ,@(return-if/else (optimize-catch-or-steps sts) (lambda (sts) (not (null? sts))) (cc v)))))) ;; 如果没有step，直接返回输入值
     (`(,op ,sts ...)
      #:when (identifier=>>>/steps? op)
-     (datum->syntax stx (let/cc cc `(,op ,@(return-if/else (optimize-catch-or-steps sts) (lambda (sts) (not (null? sts))) (cc Right)))))) ;; 如果没有step，直接返回Right
+     (datum->syntax stx (let/cc cc `(,o:>>>/steps ,@(return-if/else (optimize-catch-or-steps sts) (lambda (sts) (not (null? sts))) (cc Right)))))) ;; 如果没有step，直接返回Right
     (_ (raise-syntax-error #f "Ill-formed expression" stx))))
