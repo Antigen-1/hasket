@@ -60,14 +60,11 @@
   (define (no-catcher? sts)
     (null? (filter catcher? sts)))
 
-  (define (maybe-literalize s)
-    (return-if/else s (lambda (s) (pair? (syntax->datum s))) (list 'quote s)))
-
   (match (syntax-e stx)
     (`(,op ,v ,sts ...)
      #:when (identifier=>>>? op)
-     (datum->syntax stx (let/cc cc `(,op ,v ,@(return-if/else (optimize-catch-or-steps sts) (lambda (sts) (not (null? sts))) (cc (maybe-literalize v))))))) ;; 如果没有step，直接返回输入值
+     (datum->syntax stx (let/cc cc `(,op ,v ,@(return-if/else (optimize-catch-or-steps sts) (lambda (sts) (not (null? sts))) (cc v)))))) ;; 如果没有step，直接返回输入值
     (`(,op ,sts ...)
      #:when (identifier=>>>/steps? op)
-     (let/cc cc (datum->syntax stx `(,op ,@(return-if/else (optimize-catch-or-steps sts) (lambda (sts) (not (null? sts))) (cc Right))))))
+     (datum->syntax stx (let/cc cc `(,op ,@(return-if/else (optimize-catch-or-steps sts) (lambda (sts) (not (null? sts))) (cc Right)))))) ;; 如果没有step，直接返回Right
     (_ (raise-syntax-error #f "Ill-formed expression" stx))))

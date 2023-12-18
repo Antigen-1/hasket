@@ -50,6 +50,7 @@
 
   (define-namespace-anchor anchor)
   (parameterize ((current-namespace (namespace-anchor->namespace anchor)))
+    (check-exn exn:fail:syntax? (lambda () (expand '(>>> #:a))))
     (check-exn exn:fail:syntax? (lambda () (expand '(>>>)))))
   (parameterize ((current-namespace (namespace-anchor->namespace anchor)))
     (define l '(>>> 0 ($ unitP) unitP unitP))
@@ -67,6 +68,8 @@
     (define d (syntax->datum (time (expand l))))
     (writeln d)
     (check-true (zero? (cadr d))))
+  (let ((a 1))
+    (check-true (= 1 (>>> a))))
   (let ((a (>>>/steps)))
     (check-true (zero? (>>> 0 a))))
   (check-true (zero? (>>> 0)))
