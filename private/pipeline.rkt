@@ -6,7 +6,8 @@
          (for-syntax racket/base))
 (provide >>> >>>/steps $)
 
-(define-syntax $ #f)
+(define-syntax ($ stx)
+  (raise-syntax-error #f "Used out of pipelines" stx))
 (define-syntax-parser pipeline
   ((_ value:expr ((~literal $) body:expr ...) next:expr ...)
    #'(lambda (p)
@@ -39,6 +40,10 @@
 
 (module+ test
   (require rackunit)
+
+  (define-namespace-anchor anchor)
+  (parameterize ((current-namespace (namespace-anchor->namespace anchor)))
+    (check-exn exn:fail:syntax? (lambda () (expand '($)))))
 
   (let ((a 1))
     (check-true (= 1 (>>> a))))
