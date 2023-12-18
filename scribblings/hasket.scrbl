@@ -52,10 +52,10 @@
          #:grammar ([catch-or-step catch step])]
 
 这些语法实现了@deftech{pipeline}。
-@racket[value]可以是任意值；@racket[step]则接受这个任意值，而必须使用@racket[Left]和@racket[Right]返回。
+@racket[value]可以是任意值；step则接受这个任意值，而必须使用@racket[Left]和@racket[Right]返回。
 
-@racket[>>>/steps]的功能是建立复合的@racket[step]；另外，如果在@racket[>>>/steps]中使用@racket[$]，catch的保护不会超出@racket[>>>/steps]。
-@racket[>>>]则将@racket[step]组合起来，形成易于与@racket[racket]交互的@tech{pipeline}。
+@racket[>>>/steps]的功能是建立复合的step；另外，如果在@racket[>>>/steps]中使用@racket[$]，catch的保护不会超出@racket[>>>/steps]。
+@racket[>>>]则将step组合起来，形成易于与@racket[racket]交互的@tech{pipeline}。
 
 另外要注意，@racket[$]是一个关键字，请不要@italic{shallow}其绑定。在@tech{pipeline}以外使用@racket[$]是一个语法错误。
 
@@ -86,6 +86,32 @@
                     [first-proc id (lambda p ...) (lambda/curry/match p ...) (curry/n p ...)])]
 
 支持了函数组合，实际上是@racket[compose1]的别名。第一个函数对racket的reader作了一些妥协。
+
+@section{优化}
+
+@subsection{pipeline}
+
+我们对pipeline围绕@racket[>>>]和@racket[>>>/steps]实现了一个优化器。
+这个优化器是通过用来实现@racket[>>>]和@racket[>>>/steps]的、未优化的@tech{pipeline}自举实现的。
+包括以下几个@italic{passes}，除最后一个外，都是对step list的优化。
+
+@itemlist[
+          @item{step list中的@racket[>>>/steps]被递归优化。如果优化的结果是一个没有catch的compound step，则其step list将被inline进上级step list，否则原位保留此compound step。}
+          @item{step list中的catch被递归优化且原位保留。}
+          @item{step list中的@racket[Right]被消除。}
+          @item{step list中第一个@racket[Left]之后的step被消除。}
+          @item{step list中末尾的catch被消除。}
+          @item{如果优化后的step list为空，@racket[>>>]形式将被优化为输入的@racket[value]，@racket[>>>/steps]形式将被优化为@racket[Right]。}
+          ]
+
+主要是通过@racket[>>>]、@racket[>>>/steps]、@racket[Left]、@racket[Right]和@racket[$]这些@deftech{hints}消除一些不必要的（un）boxing和step，
+但也因此带来了一个问题：有一些step——甚至是一些有问题的step（包括语法问题和运行时的问题）——会被消除。
+
+在这里作者不推荐使用者依赖这个设计缺陷（当然也可以理解为一个特性）来设计程序。
+但作者也不会对此作出更改，因为根本上来讲它只会消除而不会引入安全问题，至多也只是让一个现存的安全问题转化为一个令使用者更难以理解的形式。
+使用者如果觉得有必要请自行添加相关检查。
+
+另外作者并未实现一套完整的@italic{evaluation model}，只是通过那些@tech{hints}作优化。因此简单地封装这些函数和宏即可关闭优化器。
 
 @section{兼容性}
 
