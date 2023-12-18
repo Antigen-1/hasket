@@ -2,7 +2,7 @@
 (require rackunit)
 
 (define tree '(a (b) c))
-(define a (lambda (v) (Right (add1 v))))
+(define a (Right . add1))
 (define b (lambda/curry/match
            (((errorR (at (exn str cm) _)))
             (define x (string->number str))
@@ -23,4 +23,4 @@
 (check-true (>>> 0 (lambda (_) ((mapP zero?) (Right 0)))))
 (check-true (>>> 0 (lambda (_) (joinP (Right (Right #t))))))
 
-(check-true (zero? ((add1 . sub1) 0)))
+(check-true (zero? (((curry/n - 2) 1) 1)))

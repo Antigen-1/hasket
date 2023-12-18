@@ -98,9 +98,8 @@
 @itemlist[
           @item{step list中的@racket[>>>/steps]被递归优化。如果优化的结果是一个没有catch的compound step，则其step list将被inline进上级step list，否则原位保留此compound step。}
           @item{step list中的catch被递归优化且原位保留。}
-          @item{step list中的@racket[Right]被消除。}
           @item{step list中第一个@racket[Left]之后的step被消除。}
-          @item{step list中末尾的catch被消除。}
+          @item{step list中末尾的catch和@racket[Right]被消除。}
           @item{如果优化后的step list为空，@racket[>>>]形式将被优化为输入的@racket[value]，@racket[>>>/steps]形式将被优化为@racket[Right]。}
           ]
 

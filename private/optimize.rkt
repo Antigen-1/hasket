@@ -44,12 +44,10 @@
      ;; 递归进入catcher
      (map (lambda (st) (match (syntax-e st) (`(,prefix ,body ...) #:when (identifier=catch? prefix) (datum->syntax st `(,prefix ,@(optimize-catch-or-steps body)))) (_ st))) it)
 
-     ;; Right相当于values
-     (filter-not identifier=Right? it)
      ;; Left之后的永远不会执行
      (take-until it identifier=Left?)
-     ;; 末尾的catcher没有意义
-     (dropf-right it catcher?)
+     ;; 末尾的catcher和Right没有意义
+     (dropf-right it (lambda (v) (or (identifier=Right? v) (catcher? v))))
      ))
 
   (define (step? st) (match (syntax-e st) (`(,prefix ,body ...) #:when (identifier=catch? prefix) #f) (_ #t)))
