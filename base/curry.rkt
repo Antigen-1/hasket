@@ -19,14 +19,11 @@
 
 (begin-for-syntax
   (define-splicing-syntax-class curried-procedure-and-its-arity
-    #:description "有可变参数的函数及指定的元数"
+    #:description "函数及指定的元数"
     (pattern (~seq procedure arity:exact-nonnegative-integer)
              #:declare procedure (expr/c
                                   #'(and/c procedure?
-                                           ;; 必须有可变参数
-                                           (lambda (p) (< (procedure-arity-mask p) 0))
-                                           ;; 指定的元数必须大于或等于必需参数个数
-                                           (lambda (p) (>= arity (- -1 (procedure-arity-mask p)))))))))
+                                           (lambda (p) (bitwise-bit-set? (procedure-arity-mask p) arity)))))))
 (define-syntax-parser curry/n
   [(_ proc-arity:curried-procedure-and-its-arity)
    (with-syntax (((arg ...) (generate-temporaries (range (syntax->datum #'proc-arity.arity)))))

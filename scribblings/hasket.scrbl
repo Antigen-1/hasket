@@ -66,8 +66,7 @@
 @defform[(curry/n procedure arity)
          #:contracts ([arity exact-nonnegative-integer?]
                       [procedure (and/c procedure?
-                                        (lambda (p) (< (procedure-arity-mask p) 0))
-                                        (lambda (p) (>= arity (- -1 (procedure-arity-mask p)))))])]
+                                        (lambda (p) (bitwise-bit-set? (procedure-arity-mask p) arity)))])]
 
 帮助用户实现haskell-style的“匹配+柯里化”函数。
 
@@ -139,4 +138,5 @@
           @item{2023.12.10 使用@racket[errorR]替换了@racket[hasket-left]，同时取消了对@racket[errorR]的内容限制。使用@racket[typed/racket]来处理position。此外为@racket[lambda/curry/match]添加了命名支持。}
           @item{2023.12.11 添加了haskell-style的复合函数，添加了@racket[joinP]和@racket[mapP]，修复了一些bug。}
           @item{2023.12.17 为@tech{pipeline}实现了一个优化器，同时导出了@racket[$]。扩展了函数组合的语法。}
+          @item{2023.12.19 简化了@racket[curry/n]的@racket[contract]和适用范围。}
           ]
