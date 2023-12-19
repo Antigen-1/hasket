@@ -90,7 +90,7 @@
 
 @subsection{pipeline}
 
-我们对pipeline围绕@racket[>>>]和@racket[>>>/steps]实现了一个优化器。
+我们对@tech{pipeline}围绕@racket[>>>]和@racket[>>>/steps]实现了一个优化器。
 这个优化器是通过用来实现@racket[>>>]和@racket[>>>/steps]的、未优化的@tech{pipeline}自举实现的。
 
 对step list的通用优化包括以下几个@italic{passes}：
