@@ -11,16 +11,17 @@
     (pattern ((~literal curry/n) p ...))
     ))
 (define-syntax-parser n:#%app
-  ((_ . (then:expr ... . first:first-procedure))
+  ((_ . (then ... . first:first-procedure))
    #'(compose1 then ... first))
-  ((_ . (proc:expr argument:expr ...))
+  ((_ . (proc argument ...))
    #'(#%app proc argument ...)))
 
 (module+ test
-  (require rackunit)
+  (require rackunit racket/string)
   (check-true ((n:#%app zero? . sub1) 1))
   (check-true ((n:#%app zero? . (lambda (v) (sub1 v))) 1))
   (check-true ((n:#%app zero? . (lambda/curry/match ((v) (sub1 v)))) 1))
   (check-true ((n:#%app zero? sub1 . add1) 0))
   (check-true ((n:#%app zero? sub1 . (curry/n + 1)) 1))
+  (check-true (string=? " a" (n:#%app string-trim " a " #:left? #f)))
   )
