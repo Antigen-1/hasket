@@ -93,14 +93,28 @@
 
 我们对pipeline围绕@racket[>>>]和@racket[>>>/steps]实现了一个优化器。
 这个优化器是通过用来实现@racket[>>>]和@racket[>>>/steps]的、未优化的@tech{pipeline}自举实现的。
-包括以下几个@italic{passes}，除最后一个外，都是对step list的优化。
+
+对step list的通用优化包括以下几个@italic{passes}：
 
 @itemlist[
           @item{step list中的@racket[>>>/steps]被递归优化。如果优化的结果是一个没有catch的compound step，则其step list将被inline进上级step list，否则原位保留优化结果。}
           @item{step list中的catch被递归优化且原位保留。}
           @item{step list中第一个@racket[Left]之后的step被消除。}
-          @item{step list中末尾的catch和@racket[Right]被消除。}
-          @item{如果优化后的step list为空，@racket[>>>]形式将被优化为输入的@racket[value]，@racket[>>>/steps]形式将被优化为@racket[Right]。}
+          @item{step list中末尾的catch被替换为@racket[Right]。}
+          ]
+
+对top-level step list（即@racket[>>>]的step list）的优化则包括：
+
+@itemlist[
+          @item{step list的通用优化（注意在这里step list末尾的catch都已被替换为@racket[Right]）。}
+          @item{去除末尾的@racket[Right]。}
+          ]
+
+其他优化：
+
+@itemlist[
+          @item{对于@racket[>>>]，如果step list为空则被优化为输入的@racket[value]。}
+          @item{对于@racket[>>>/steps]，如果step list为空则被优化为@racket[Right]。}
           ]
 
 主要是通过@racket[>>>]、@racket[>>>/steps]、@racket[Left]、@racket[Right]和@racket[$]这些@deftech{hints}消除一些不必要的（un）boxing和step，

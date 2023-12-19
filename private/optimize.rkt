@@ -29,6 +29,15 @@
                   identifier=catch?)
     (apply values (map make-identifier=? (list >>> >>>/steps Left Right catch))))
 
+  (define (step? st) (match (syntax-e st) (`(,prefix ,body ...) #:when (identifier=catch? prefix) #f) (_ #t)))
+  (define (catcher? st) (not (step? st)))
+  (define (has-catcher? sts)
+    (not (null? (filter catcher? sts))))
+
+  (define (Right-or-catcher? v)
+    (or (identifier=Right? v)
+        (catcher? v)))
+
   (define optimize-catch-or-steps
     (passes
      ;; 递归进入复合步骤，将没有catcher或没有step的复合步骤inline入上级步骤列表
@@ -46,19 +55,23 @@
 
      ;; Left之后的永远不会执行
      (take-until it identifier=Left?)
-     ;; 末尾的catcher和Right没有意义
-     (dropf-right it (lambda (v) (or (identifier=Right? v) (catcher? v))))
+     ;; 末尾的catcher和Right都只能贡献position，而Right明显代码量更少
+     (let-values (((former latter) (splitf-at-right it Right-or-catcher?))) (append former (map (lambda (_) Right) latter)))
      ))
 
-  (define (step? st) (match (syntax-e st) (`(,prefix ,body ...) #:when (identifier=catch? prefix) #f) (_ #t)))
-  (define (catcher? st) (not (step? st)))
-  (define (has-catcher? sts)
-    (not (null? (filter catcher? sts))))
+  (define optimize-top-level-catch-or-steps
+    (passes
+     ;; 常规sts优化
+     (optimize-catch-or-steps it)
+     ;; 末尾的catcher和Right无意义，但这里的所有catcher都已替换为了Right
+     (dropf-right it identifier=Right?)
+     ))
 
   (match (syntax-e stx)
     (`(,op ,v ,sts ...)
      #:when (identifier=>>>? op)
-     (datum->syntax stx (let/cc cc `(,o:>>> ,v ,@(return-if/else (optimize-catch-or-steps sts) (lambda (sts) (not (null? sts))) (cc v)))))) ;; 如果没有step，直接返回输入值
+     ;; Top-level step list
+     (datum->syntax stx (let/cc cc `(,o:>>> ,v ,@(return-if/else (optimize-top-level-catch-or-steps sts) (lambda (sts) (not (null? sts))) (cc v)))))) ;; 如果没有step，直接返回输入值
     (`(,op ,sts ...)
      #:when (identifier=>>>/steps? op)
      (datum->syntax stx (let/cc cc `(,o:>>>/steps ,@(return-if/else (optimize-catch-or-steps sts) (lambda (sts) (not (null? sts))) (cc Right)))))) ;; 如果没有step，直接返回Right
