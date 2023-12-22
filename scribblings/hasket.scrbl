@@ -112,8 +112,8 @@
 其他优化：
 
 @itemlist[
-          @item{对于@racket[>>>]，如果step list为空则被优化为输入的@racket[value]。}
-          @item{对于@racket[>>>/steps]，如果step list为空则被优化为@racket[Right]。}
+          @item{对于@racket[>>>]，如果@racket[value]也是@racket[>>>]形式，则其step list使用@racket[>>>/steps]封装，合并入top-level step list然后按照前文规则优化。如果优化后top-level step list为空则被优化为输入的@racket[value]。}
+          @item{对于@racket[>>>/steps]，如果优化后step list为空则被优化为@racket[Right]。}
           ]
 
 主要是通过@racket[>>>]、@racket[>>>/steps]、@racket[Left]、@racket[Right]和@racket[$]这些@deftech{hints}消除一些不必要的（un）boxing和step，
@@ -139,5 +139,5 @@
           @item{2023.12.11 添加了haskell-style的复合函数，添加了@racket[joinP]和@racket[mapP]，修复了一些bug。}
           @item{2023.12.17 为@tech{pipeline}实现了一个优化器，同时导出了@racket[$]。扩展了函数组合的语法。}
           @item{2023.12.19 简化了@racket[curry/n]的@racket[contract]和适用范围。}
-          @item{2023.12.22 扩展了@racket[lambda/curry/match]使其支持完整的@racket[match-lambda**]语法。}
+          @item{2023.12.22 扩展了@racket[lambda/curry/match]使其支持完整的@racket[match-lambda**]语法。完善了@tech{pipeline}的optimizer。}
           ]
