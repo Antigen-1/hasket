@@ -12,10 +12,10 @@
     (pattern (~seq ) #:with name #'temp)
     (pattern (~seq #:name nm:id) #:with name #'nm)))
 (define-syntax-parser lambda/curry/match ;; match-lambda**不支持可变参数，因此这里不需要输入arity
-  [(_ nm:name ((~datum !) contract) (match-clause body ...) ...) ;; 尽管match的模式可能是关键字，最外层依旧必须是list
-   #'(let () (define/contract nm.name contract (match-lambda** [match-clause body ...] ...)) (curry nm.name))]
-  [(_ nm:name (match-clause body ...) ...)
-   #'(let () (define nm.name (match-lambda** [match-clause body ...] ...)) (curry nm.name))])
+  [(_ nm:name ((~datum !) contract) match-clause ...)
+   #'(let () (define/contract nm.name contract (match-lambda** match-clause ...)) (curry nm.name))]
+  [(_ nm:name match-clause:expr ...) ;; 尽管match的模式可能是关键字，最外层依旧必须是list
+   #'(let () (define nm.name (match-lambda** match-clause ...)) (curry nm.name))])
 
 (begin-for-syntax
   (define-splicing-syntax-class curried-procedure-and-its-arity

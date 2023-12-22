@@ -1,5 +1,5 @@
 #lang scribble/manual
-@require[@for-label[hasket (except-in racket/base #%app) racket/contract racket/function]]
+@require[@for-label[hasket (except-in racket/base #%app) racket/contract racket/function racket/match]]
 
 @title{hasket}
 @author{zhanghao}
@@ -60,7 +60,7 @@
 另外要注意，@racket[$]是一个关键字，请不要@italic{shallow}其绑定。在@tech{pipeline}以外使用@racket[$]是一个语法错误。
 
 @defform[#:literals (!)
-         (lambda/curry/match maybe-name maybe-contract (match-clause body ...) ...)
+         (lambda/curry/match maybe-name maybe-contract match-clause ...)
          #:grammar ([maybe-name (code:line #:name name)]
                     [maybe-contract (! contract-expr)])]
 @defform[(curry/n procedure arity)
@@ -139,4 +139,5 @@
           @item{2023.12.11 添加了haskell-style的复合函数，添加了@racket[joinP]和@racket[mapP]，修复了一些bug。}
           @item{2023.12.17 为@tech{pipeline}实现了一个优化器，同时导出了@racket[$]。扩展了函数组合的语法。}
           @item{2023.12.19 简化了@racket[curry/n]的@racket[contract]和适用范围。}
+          @item{2023.12.22 扩展了@racket[lambda/curry/match]使其支持完整的@racket[match-lambda**]语法。}
           ]
