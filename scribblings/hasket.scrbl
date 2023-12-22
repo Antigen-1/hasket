@@ -112,7 +112,11 @@
 其他优化：
 
 @itemlist[
-          @item{对于@racket[>>>]，如果@racket[value]也是@racket[>>>]形式，则其step list使用@racket[>>>/steps]封装，合并入top-level step list然后按照前文规则优化。如果优化后top-level step list为空则被优化为输入的@racket[value]。}
+          @item{
+                对于@racket[>>>]，如果@racket[value]也是@racket[>>>]形式，则其step list使用@racket[>>>/steps]封装，合并入top-level step list；其@racket[value]则为新的@racket[value]。
+                这样化简直至@racket[value]不再是@racket[>>>]形式，然后对top-level step list作优化。
+                如果优化后top-level step list为空则被优化为@racket[value]。
+                }
           @item{对于@racket[>>>/steps]，如果优化后step list为空则被优化为@racket[Right]。}
           ]
 

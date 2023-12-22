@@ -72,14 +72,16 @@
      #:when (identifier=>>>? op)
      ;; Top-level step list
      ;; 如果没有step，直接返回输入值
-     (match (syntax-e v)
-       ;; 递归进入value
-       (`(,op ,nv ,extra-sts ...)
-        #:when (identifier=>>>? op)
-        (define nsts (cons (datum->syntax v `(,>>>/steps ,@extra-sts)) sts))
-        (datum->syntax stx (let/cc cc `(,o:>>> ,nv ,@(return-if/else (optimize-top-level-catch-or-steps nsts) (lambda (sts) (not (null? sts))) (cc nv))))))
-       (_
-        (datum->syntax stx (let/cc cc `(,o:>>> ,v ,@(return-if/else (optimize-top-level-catch-or-steps sts) (lambda (sts) (not (null? sts))) (cc v))))))))
+     (define-values (nv nsts)
+       (let loop ((v v) (sts sts))
+         (match (syntax-e v)
+           ;; 递归进入value
+           (`(,op ,nv ,extra-sts ...)
+            #:when (identifier=>>>? op)
+            (define nsts (cons (datum->syntax v `(,>>>/steps ,@extra-sts)) sts))
+            (loop nv nsts))
+           (_ (values v sts)))))
+     (datum->syntax stx (let/cc cc `(,o:>>> ,nv ,@(return-if/else (optimize-top-level-catch-or-steps nsts) (lambda (sts) (not (null? sts))) (cc nv))))))
     (`(,op ,sts ...)
      #:when (identifier=>>>/steps? op)
      ;; 如果没有step，直接返回Right

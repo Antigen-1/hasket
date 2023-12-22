@@ -34,6 +34,7 @@
   (require rackunit)
   (check-eq? 'curried:a (object-name (lambda/curry/match #:name a (! (-> void?)) (() (void)))))
   (check-eq? 'curried:a (object-name (lambda/curry/match #:name a (() (void)))))
+  (check-true ((lambda/curry/match ((b) #:when (not b) #t)) #f))
   (define n= (lambda/curry/match (! (-> integer? integer? boolean?)) ((i n) (= i n))))
   (check-true ((n= 1) 1))
   (define nn= (lambda/curry/match ((i n) (= i n))))
