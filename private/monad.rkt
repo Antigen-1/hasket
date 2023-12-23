@@ -10,10 +10,10 @@
 (provide (struct-out errorR)
          (struct-out unitR)
          (struct-out at)
-         flip-errorR
          unitP
          errorP
          bindP
+         bindPL
          resetP
          mapP
          joinP
@@ -27,6 +27,13 @@
 (define (bindR value proc)
   (cond ((unitR? value) (proc (unitR-value value)))
         (else value)))
+;; 只是长得像bindM
+;; proc直接处理errorR
+;; unitR直接被返回
+(: bindRL (All (a b) (-> (Result a b) (-> (errorR b) (Result a b)) (Result a b))))
+(define (bindRL value proc)
+  (cond ((errorR? value) (proc value))
+        (else value)))
 
 ;; P
 (struct (a) at ((value : a) (position : Position-Value)) #:type-name At)
@@ -37,6 +44,9 @@
 (define ((errorP e) p) (errorR (at e p)))
 (: bindP (-> (Position Any Any) (-> Any (Position Any Any)) (Position Any Any)))
 (define ((bindP m k) p) ((inst bindR Any (At Any)) (m p) (lambda (v) ((k v) p))))
+;; 只是长得像bindM，bindP的bindRL版
+(: bindPL (-> (Position Any Any) (-> (errorR (At Any)) (Position Any Any)) (Position Any Any)))
+(define ((bindPL m k) p) ((inst bindRL Any (At Any)) (m p) (lambda (v) ((k (flip-errorR v)) p))))
 (: resetP (All (a b) (-> Position-Value (-> (Position a b) (Position a b)))))
 (define (((resetP q) m) p) (m q))
 

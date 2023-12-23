@@ -9,23 +9,29 @@
 (define-syntax ($ stx)
   (raise-syntax-error #f "Used out of pipelines" stx))
 (define-syntax-parser pipeline
-  ((_ value:expr ((~literal $) body:expr ...) next:expr ...)
-   #'(lambda (p)
-       (define new ((pipeline value next ...) (increment p)))
-       (cond ((errorR? new) ((pipeline (unitP (flip-errorR new)) body ...) (add-branch p)))
-             (else new))))
-  ((_ value:expr first:expr next:expr ...)
-   #'(bindP (bindP value first) (lambda (new) (lambda (p) ((pipeline (unitP new) next ...) (increment p))))))
+  ((_ value:expr ((~literal $) body:expr) next:expr)
+   #'(bindPL (pipeline value next) body))
+  ((_ value:expr first:expr)
+   #'(bindP value first))
   ((_ value:expr) #'value))
+(define-syntax-parser pipeline/location
+  ((_ value:expr ((~literal $) body:expr ...) next:expr ...)
+   #'(pipeline value
+               ($ (lambda (val) (compose1 (pipeline/location (unitP val) body ...) add-branch)))
+               (lambda (val) (compose1 (pipeline/location (unitP val) next ...) increment))))
+  ((_ value:expr first:expr next:expr ...)
+   #'(pipeline (pipeline value first)
+               (lambda (val) (compose1 (pipeline/location (unitP val) next ...) increment))))
+  ((_ value:expr) #'(pipeline value)))
 
 ;; 最后的结果会被解包
+(define default-start (init))
 (define-syntax (>>> stx)
   (syntax-parse stx
     ((_ val:expr catch-or-step:expr ...)
-     #'(let ((result ((pipeline (unitP val) catch-or-step ...) (init))))
-         (cond ((errorR? result) (flip-errorR result))
-               (else (unitR-value result)))))
-    ))
+     #'(unitR-value
+        ((bindPL (pipeline/location (unitP val) catch-or-step ...) unitP)
+         default-start)))))
 
 #|
 本来想直接改pipeline的，但pipeline的value是(-> position-value result)
@@ -35,7 +41,7 @@
   (syntax-parse stx
     ((_ catch-or-step:expr ...)
      #'(lambda (value)
-         (pipeline (unitP value) catch-or-step ...)))
+         (pipeline/location (unitP value) catch-or-step ...)))
     ))
 
 (module+ test
@@ -56,5 +62,9 @@
   (>>> 0
        ($ (lambda (v) (unitP (check-equal? '(1) (at-position (errorR-value v))))))
        (lambda (v) (errorP (exn (format "~a" v) (current-continuation-marks)))))
+  (>>> 0
+       ($ (lambda (v) (unitP (check-equal? (at-position (errorR-value v)) '(1 0)))))
+       ($ errorP)
+       errorP)
   (check-true (zero? (>>> 0 (>>>/steps unitP))))
   )
