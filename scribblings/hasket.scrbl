@@ -100,11 +100,6 @@
 @itemlist[
           @item{step list中的@racket[>>>/steps]被递归优化。如果优化的结果是一个没有catch的compound step，则其step list将被inline进上级step list，否则原位保留优化结果。}
           @item{step list中的catch被递归优化且原位保留。}
-          @item{
-                step list中的top-level step list被递归优化（具体见后文）。
-                top-level step list是由@racket[>>>]标记的（具体见后文），用户自己无法指定。
-                一个step list中有top-level step sublist，则其他step也必定是top-level step sublist，该step list也是top-level step list。
-                如果优化结果为空则被inline，否则在开头位置安装一个catch然后原位保留。}
           @item{step list中第一个@racket[Left]之后的step被消除。}
           @item{step list中末尾的catch被替换为@racket[Right]。}
           ]
@@ -113,6 +108,10 @@
 
 @itemlist[
           @item{step list的通用优化（注意在这里step list末尾的catch都已被替换为@racket[Right]）。}
+          @item{
+                step list中的top-level step list被递归优化。
+                top-level step list是由@racket[>>>]标记的（具体见后文），用户自己无法指定。
+                如果优化结果为空则被inline，否则在开头位置安装一个catch然后原位保留。}
           @item{去除末尾的@racket[Right]。}
           ]
 

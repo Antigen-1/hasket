@@ -61,20 +61,6 @@
                    it))
      ;; 递归进入catcher
      (map (lambda (st) (match (syntax-e st) (`(,prefix ,body ...) #:when (identifier=catch? prefix) (datum->syntax st `(,prefix ,@(optimize-catch-or-steps body)))) (_ st))) it)
-     ;; 递归进入top-level step list
-     ;; >>>/steps/init不允许inline，除非step list为空
-     ;; 保留下来的>>>/steps/init被替换为o:>>>/steps
-     (filter-map (lambda (st) (match (syntax-e st)
-                                (`(,op ,sts ...)
-                                 #:when (identifier=>>>/steps/init? op)
-                                 (define nsts (optimize-top-level-catch-or-steps sts))
-                                 (if (null? nsts)
-                                     #f
-                                     ;; A catcher is installed
-                                     ;; Use reset-position to start a top-level step list
-                                     (datum->syntax st `(,o:>>>/steps (,catch) (lambda (v) (,reset ((,o:>>>/steps ,@nsts) v)))))))
-                                (_ st)))
-                 it)
 
      ;; Left之后的永远不会执行
      (take-until it identifier=Left?)
@@ -86,6 +72,21 @@
     (passes
      ;; 常规sts优化
      (optimize-catch-or-steps it)
+     ;; 递归进入top-level step list
+     ;; >>>/steps/init不允许inline，除非step list为空
+     ;; 保留下来的>>>/steps/init被替换为o:>>>/steps
+     ;; 总之，top-level step list总是被原位保留的（即使是被inline），而且需要额外的处理，因此区别于一般的step list，单独放在这里
+     (filter-map (lambda (st) (match (syntax-e st)
+                                (`(,op ,sts ...)
+                                 #:when (identifier=>>>/steps/init? op)
+                                 (define nsts (optimize-top-level-catch-or-steps sts))
+                                 (if (null? nsts)
+                                     #f
+                                     ;; A catcher is installed
+                                     ;; Use reset to start a top-level step list
+                                     (datum->syntax st `(,o:>>>/steps (,catch) (lambda (v) (,reset ((,o:>>>/steps ,@nsts) v)))))))
+                                (_ st)))
+                 it)
      ;; 末尾的catcher和Right无意义，但这里的所有catcher都已替换为了Right
      (dropf-right it identifier=Right?)
      ))
