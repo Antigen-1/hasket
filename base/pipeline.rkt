@@ -1,5 +1,5 @@
 #lang racket/base
-(require "../private/pipeline.rkt" "../private/monad.rkt"
+(require "../private/pipeline.rkt" "../private/monad.rkt" "../private/position.rkt"
 
          (for-syntax racket/base "../private/optimize.rkt"))
 (provide (rename-out (n:>>> >>>)
