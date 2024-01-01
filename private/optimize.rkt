@@ -40,9 +40,6 @@
     (or (identifier=Right? v)
         (catcher? v)))
 
-  (define (reset-position stx)
-    `(,reset ,stx))
-
   (define optimize-catch-or-steps
     (passes
      ;; 递归进入复合步骤，将没有catcher或没有step的复合步骤inline入上级步骤列表
@@ -75,7 +72,7 @@
                                      #f
                                      ;; A catcher is installed
                                      ;; Use reset-position to start a top-level step list
-                                     (datum->syntax st `(,o:>>>/steps (,catch) ,(reset-position `(,o:>>>/steps ,@nsts))))))
+                                     (datum->syntax st `(,o:>>>/steps (,catch) (lambda (v) (,reset ((,o:>>>/steps ,@nsts) v)))))))
                                 (_ st)))
                  it)
 
