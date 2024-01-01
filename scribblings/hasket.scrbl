@@ -104,13 +104,12 @@
           @item{step list中末尾的catch被替换为@racket[Right]。}
           ]
 
-对top-level step list（即@racket[>>>]的step list）的优化则包括：
+对top-level step list「top-level step list是由@racket[>>>]标记的（具体见后文），用户自己无法指定。」的优化则包括：
 
 @itemlist[
           @item{step list的通用优化（注意在这里step list末尾的catch都已被替换为@racket[Right]）。}
           @item{
                 step list中的top-level step list被递归优化。
-                top-level step list是由@racket[>>>]标记的（具体见后文），用户自己无法指定。
                 如果优化结果为空则被inline，否则在开头位置安装一个catch然后原位保留。}
           @item{去除末尾的@racket[Right]。}
           ]
