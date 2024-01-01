@@ -7,7 +7,7 @@
          $)
 
 ;; Optimal syntactic forms
-(begin-for-syntax (define optimize (make-pipeline-optimizer #'n:>>> #'n:>>>/steps #'>>> #'>>>/steps #'errorP #'unitP #'$)))
+(begin-for-syntax (define optimize (make-pipeline-optimizer #'n:>>> #'n:>>>/steps #'>>> #'>>>/steps #'(resetP (init)) #'errorP #'unitP #'$)))
 (define-syntax (n:>>> stx)
   (optimize stx))
 (define-syntax (n:>>>/steps stx)
@@ -30,6 +30,7 @@
       (define d (syntax->datum (time (expand form))))
       (writeln d)
       (check-true (pred d))))
+  (check (lambda (v) (equal? v (let/cc cc (check cc '(>>> (>>> 0 unitP errorP) unitP))))) '(>>> (>>> 0 unitP errorP unitP) ($ unitP errorP)))
   (check (zero? . cadr) '(>>> 0 ($ unitP) unitP unitP))
   (check (zero? . cadr) '(>>> 0 (>>>/steps ($ (>>>/steps unitP)))))
   (check (zero? . cadr) '(>>> (>>> (>>> 0) unitP (>>>/steps unitP)) unitP)))

@@ -21,13 +21,15 @@
      (with-syntax ((it (car (syntax-e (syntax-local-introduce #'(it stx))))))
        #'(lambda (v) (>>> v (lambda (it) (unitP step)) ...))))))
 
-(define ((make-pipeline-optimizer >>> >>>/steps o:>>> o:>>>/steps Left Right catch) stx)
+(define-syntax >>>/steps/init #f) ;; A hook, not exported
+(define ((make-pipeline-optimizer >>> >>>/steps o:>>> o:>>>/steps reset Left Right catch) stx)
   (define-values (identifier=>>>?
                   identifier=>>>/steps?
+                  identifier=>>>/steps/init?
                   identifier=Left?
                   identifier=Right?
                   identifier=catch?)
-    (apply values (map make-identifier=? (list >>> >>>/steps Left Right catch))))
+    (apply values (map make-identifier=? (list >>> >>>/steps #'>>>/steps/init Left Right catch))))
 
   (define (step? st) (match (syntax-e st) (`(,prefix ,body ...) #:when (identifier=catch? prefix) #f) (_ #t)))
   (define (catcher? st) (not (step? st)))
@@ -38,20 +40,44 @@
     (or (identifier=Right? v)
         (catcher? v)))
 
+  (define (reset-position stx)
+    `(,reset ,stx))
+
   (define optimize-catch-or-steps
     (passes
      ;; 递归进入复合步骤，将没有catcher或没有step的复合步骤inline入上级步骤列表
      (flatten (map (lambda (st) (match (syntax-e st)
                                   (`(,op ,sts ...)
                                    #:when (identifier=>>>/steps? op)
-                                   (define opt ((make-pipeline-optimizer >>> >>>/steps o:>>> o:>>>/steps Left Right catch) st))
+                                   (define opt ((make-pipeline-optimizer >>> >>>/steps o:>>> o:>>>/steps reset Left Right catch) st))
+                                   (define (get-step-list steps)
+                                     (cdr (syntax->list steps)))
                                    (return-if/else opt
-                                                   (lambda (v) (or (identifier=Right? v) (has-catcher? (cdr (syntax->list v)))))
-                                                   (cdr (syntax->list opt))))
+                                                   (lambda (v)
+                                                     (or
+                                                      ;; Right直接inline
+                                                      ;; 有catcher不能inline
+                                                      (identifier=Right? v)
+                                                      (has-catcher? (get-step-list v))))
+                                                   (get-step-list opt)))
                                   (_ st)))
                    it))
      ;; 递归进入catcher
      (map (lambda (st) (match (syntax-e st) (`(,prefix ,body ...) #:when (identifier=catch? prefix) (datum->syntax st `(,prefix ,@(optimize-catch-or-steps body)))) (_ st))) it)
+     ;; 递归进入top-level step list
+     ;; >>>/steps/init不允许inline，除非step list为空
+     ;; 保留下来的>>>/steps/init被替换为o:>>>/steps
+     (filter-map (lambda (st) (match (syntax-e st)
+                                (`(,op ,sts ...)
+                                 #:when (identifier=>>>/steps/init? op)
+                                 (define nsts (optimize-top-level-catch-or-steps sts))
+                                 (if (null? nsts)
+                                     #f
+                                     ;; A catcher is installed
+                                     ;; Use reset-position to start a top-level step list
+                                     (datum->syntax st `(,o:>>>/steps (,catch) ,(reset-position `(,o:>>>/steps ,@nsts))))))
+                                (_ st)))
+                 it)
 
      ;; Left之后的永远不会执行
      (take-until it identifier=Left?)
@@ -73,12 +99,14 @@
      ;; Top-level step list
      ;; 如果没有step，直接返回输入值
      (define-values (nv nsts)
-       (let loop ((v v) (sts sts))
+       ;; 原始top-level step list使用>>>/steps/init封装
+       (let loop ((v v) (sts (list (datum->syntax stx `(,#'>>>/steps/init ,@sts)))))
          (match (syntax-e v)
            ;; 递归进入value
            (`(,op ,nv ,extra-sts ...)
             #:when (identifier=>>>? op)
-            (define nsts (cons (datum->syntax v `(,>>>/steps ,@extra-sts)) sts))
+            ;; 新加入的top-level step list使用>>>/steps/init封装
+            (define nsts (cons (datum->syntax v `(,#'>>>/steps/init ,@extra-sts)) sts))
             (loop nv nsts))
            (_ (values v sts)))))
      (datum->syntax stx (let/cc cc `(,o:>>> ,nv ,@(return-if/else (optimize-top-level-catch-or-steps nsts) (lambda (sts) (not (null? sts))) (cc nv))))))

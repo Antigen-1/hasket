@@ -30,7 +30,7 @@
   (syntax-parse stx
     ((_ val:expr catch-or-step:expr ...)
      #'(unitR-value
-        ((bindPL (pipeline/location (unitP val) catch-or-step ...) unitP)
+        ((pipeline/location (unitP val) ($) (lambda (v) ((resetP default-start) (pipeline/location (unitP v) catch-or-step ...))))
          default-start)))))
 
 #|

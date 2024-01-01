@@ -93,11 +93,18 @@
 我们对@tech{pipeline}围绕@racket[>>>]和@racket[>>>/steps]实现了一个优化器。
 这个优化器是通过用来实现@racket[>>>]和@racket[>>>/steps]的、未优化的@tech{pipeline}自举实现的。
 
+以下这些优化方式的内容用户不需要过多了解。另外关于position，用户只需要知道与原始@tech{pipeline}的行为完全兼容即可。
+
 对step list的通用优化包括以下几个@italic{passes}：
 
 @itemlist[
           @item{step list中的@racket[>>>/steps]被递归优化。如果优化的结果是一个没有catch的compound step，则其step list将被inline进上级step list，否则原位保留优化结果。}
           @item{step list中的catch被递归优化且原位保留。}
+          @item{
+                step list中的top-level step list被递归优化（具体见后文）。
+                top-level step list是由@racket[>>>]标记的（具体见后文），用户自己无法指定。
+                一个step list中有top-level step sublist，则其他step也必定是top-level step sublist，该step list也是top-level step list。
+                如果优化结果为空则被inline，否则在开头位置安装一个catch然后原位保留。}
           @item{step list中第一个@racket[Left]之后的step被消除。}
           @item{step list中末尾的catch被替换为@racket[Right]。}
           ]
@@ -113,8 +120,9 @@
 
 @itemlist[
           @item{
-                对于@racket[>>>]，如果@racket[value]也是@racket[>>>]形式，则其step list使用@racket[>>>/steps]封装，合并入top-level step list；其@racket[value]则为新的@racket[value]。
-                这样化简直至@racket[value]不再是@racket[>>>]形式，然后对top-level step list作优化。
+                对于@racket[>>>]，其原始top-level step list使用@racket[>>>/steps]封装并被标记为top-level step list。
+                如果@racket[value]也是@racket[>>>]形式，则其step list使用@racket[>>>/steps]封装并被标记为top-level step list；其@racket[value]则为新的@racket[value]。
+                这样化简直至@racket[value]不再是@racket[>>>]形式，然后对新构建的top-level step list作优化。
                 如果优化后top-level step list为空则被优化为@racket[value]。
                 }
           @item{对于@racket[>>>/steps]，如果优化后step list为空则被优化为@racket[Right]。}
@@ -144,4 +152,5 @@
           @item{2023.12.17 为@tech{pipeline}实现了一个优化器，同时导出了@racket[$]。扩展了函数组合的语法。}
           @item{2023.12.19 简化了@racket[curry/n]的@racket[contract]和适用范围。}
           @item{2023.12.22 扩展了@racket[lambda/curry/match]使其支持完整的@racket[match-lambda**]语法。完善了@tech{pipeline}的optimizer。}
+          @item{2024.1.1 修复了@tech{pipeline}的optimizer。}
           ]
