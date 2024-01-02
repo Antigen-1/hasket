@@ -14,7 +14,7 @@
   (optimize stx))
 
 (module+ test
-  (require rackunit (submod "..") "compose.rkt")
+  (require rackunit (submod "..") "compose.rkt" (rename-in (only-in "../private/pipeline.rkt" >>> >>>/steps) (>>> o:>>>) (>>>/steps o:>>>/steps)))
 
   (define-namespace-anchor anchor)
 
@@ -30,7 +30,11 @@
       (define d (syntax->datum (time (expand form))))
       (writeln d)
       (check-true (pred d))))
-  (check (lambda (v) (equal? v (let/cc cc (check cc '(>>> (>>> 0 unitP errorP) unitP))))) '(>>> (>>> 0 unitP errorP unitP) ($ unitP errorP)))
-  (check (zero? . cadr) '(>>> 0 ($ unitP) unitP unitP))
-  (check (zero? . cadr) '(>>> 0 (>>>/steps ($ (>>>/steps unitP)))))
-  (check (zero? . cadr) '(>>> (>>> (>>> 0) unitP (>>>/steps unitP)) unitP)))
+  (define (check-equal form1 form2)
+    (check (lambda (v) (equal? v (let/cc cc (check cc form1)))) form2))
+  (check-equal '(>>> (>>> 0 unitP errorP) unitP) '(>>> (>>> 0 unitP errorP unitP) ($ unitP errorP)))
+  (check-equal '(>>> 0 (>>>/steps ($) unitP errorP) errorP unitP) '(o:>>> 0 (o:>>>/steps ($) unitP errorP) errorP))
+  (check-equal '(>>> 0 (>>>/steps ($) unitP errorP)) '(o:>>> 0 ($) unitP errorP))
+  (check-equal '(>>> 0 ($ unitP) unitP unitP) '(quote 0))
+  (check-equal '(>>> 0 (>>>/steps ($ (>>>/steps unitP)))) '(quote 0))
+  (check-equal '(>>> (>>> (>>> 0) unitP (>>>/steps unitP)) unitP) '(quote 0)))

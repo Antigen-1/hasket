@@ -70,6 +70,16 @@
 
   (define optimize-top-level-catch-or-steps
     (passes
+     ;; 只有一个(top-level) step sublist，直接（递归）inline
+     (let loop ((it it))
+       (match it
+         (`(,stx)
+          (match (syntax-e stx)
+            (`(,op ,sts ...)
+             #:when (or (identifier=>>>/steps/init? op) (identifier=>>>/steps? op))
+             (loop sts))
+            (_ it)))
+         (_ it)))
      ;; 常规sts优化
      (optimize-catch-or-steps it)
      ;; 递归进入top-level step list

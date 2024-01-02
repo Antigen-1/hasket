@@ -107,6 +107,7 @@
 对top-level step list「top-level step list是由@racket[>>>]标记的（具体见后文），用户自己无法指定。」的优化则包括：
 
 @itemlist[
+          @item{如果step list仅由一个step sublist构成，则无论是否为top-level step sublist，一律递归inline（即递归提取step sublist直至获得不是仅有一个step sublist的step list）。}
           @item{step list的通用优化（注意在这里step list末尾的catch都已被替换为@racket[Right]）。}
           @item{
                 step list中的top-level step list被递归优化。
@@ -151,4 +152,5 @@
           @item{2023.12.19 简化了@racket[curry/n]的@racket[contract]和适用范围。}
           @item{2023.12.22 扩展了@racket[lambda/curry/match]使其支持完整的@racket[match-lambda**]语法。完善了@tech{pipeline}的optimizer。}
           @item{2024.1.1 修复了@tech{pipeline}的optimizer。}
+          @item{2024.1.2 完善了@tech{pipeline}的optimizer。}
           ]
