@@ -16,7 +16,7 @@
 
 @section{函数}
 
-@defproc[(Left (exception exn?)) any]
+@defproc[(Left (exception any/c)) any]
 @defproc[(Right (value any/c)) any]
 
 这两个函数分别用于在@tech{pipeline}中报错和返回，没有提供直接处理其返回值的工具，因此一般来说在@tech{pipeline}以外使用这两个函数是无意义的。
