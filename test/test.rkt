@@ -24,3 +24,6 @@
 (check-true (>>> 0 (lambda (_) (joinM (Right (Right #t))))))
 
 (check-true (zero? (((curry/n - 2) 1) 1)))
+
+(struct A (v) #:transparent #:methods gen:monad [(define (mapM f m) (A (f (A-v m))))])
+(check-equal? (mapM add1 (A 1)) (A 2))
