@@ -15,8 +15,8 @@
          bindP
          bindPL
          resetP
-         mapP
-         joinP
+         unitL
+         bindL
          )
 
 ;; R
@@ -60,6 +60,15 @@
 (define (flip-errorR e)
   (((inst liftE (At a)) ((inst liftA a) flip)) e))
 
+;; L
+(: unitL (All (a) (-> a (Listof a))))
+(define unitL list)
+(: bindL (All (a b) (-> (Listof a) (-> a (Listof b)) (Listof b))))
+(define (bindL l p)
+  (for/fold ((result null))
+            ((element (in-list l)))
+    (append result (p element))))
+
 #|
 Left unit:
 (unitM a) `bindM` k = k a
@@ -68,10 +77,3 @@ m `bindM` unitM = m
 Associative:
 m `bindM` (\a -> (k a) `bindM` h) = (m `bindM` (\a -> (k a)) `bindM` h)
 |#
-
-(: mapP (All (a b c) (-> (-> a b) (Position a c) (Position b c))))
-(define (mapP f m)
-  ((inst bindP a c b c) m (lambda (a) (unitP (f a)))))
-(: joinP (All (a b c) (-> (Position (Position a b) c) (Position a (U b c)))))
-(define (joinP m)
-  ((inst bindP (Position a b) c a b) m (lambda (a) a)))

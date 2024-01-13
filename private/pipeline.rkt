@@ -1,5 +1,5 @@
 #lang racket/base
-(require "monad.rkt" "position.rkt"
+(require "position.rkt" "generic.rkt" (only-in "monad.rkt" unitR-value)
 
          syntax/parse/define
 
@@ -17,11 +17,11 @@
 (define-syntax-parser pipeline/location
   ((_ value:expr ((~literal $) body:expr ...) next:expr ...)
    #'(pipeline value
-               ($ (lambda (val) (compose1 (pipeline/location (unitP val) body ...) add-branch)))
-               (lambda (val) (compose1 (pipeline/location (unitP val) next ...) increment))))
+               ($ (lambda (val) (compose1 (pipeline/location (Right val) body ...) add-branch)))
+               (lambda (val) (compose1 (pipeline/location (Right val) next ...) increment))))
   ((_ value:expr first:expr next:expr ...)
    #'(pipeline (pipeline value first)
-               (lambda (val) (compose1 (pipeline/location (unitP val) next ...) increment))))
+               (lambda (val) (compose1 (pipeline/location (Right val) next ...) increment))))
   ((_ value:expr) #'(pipeline value)))
 
 ;; 最后的结果会被解包
@@ -30,7 +30,7 @@
   (syntax-parse stx
     ((_ val:expr catch-or-step:expr ...)
      #'(unitR-value
-        ((pipeline/location (unitP val) ($) (lambda (v) ((resetP default-start) (pipeline/location (unitP v) catch-or-step ...))))
+        ((pipeline/location (Right val) ($) (lambda (v) ((resetP default-start) (pipeline/location (Right v) catch-or-step ...))))
          default-start)))))
 
 #|
@@ -41,11 +41,11 @@
   (syntax-parse stx
     ((_ catch-or-step:expr ...)
      #'(lambda (value)
-         (pipeline/location (unitP value) catch-or-step ...)))
+         (pipeline/location (Right value) catch-or-step ...)))
     ))
 
 (module+ test
-  (require rackunit)
+  (require rackunit (only-in "monad.rkt" errorR? at-position errorR-value))
 
   (define-namespace-anchor anchor)
   (parameterize ((current-namespace (namespace-anchor->namespace anchor)))
@@ -56,15 +56,19 @@
   (let ((a (>>>/steps)))
     (check-true (zero? (>>> 0 a))))
   (check-true (zero? (>>> 0)))
-  (check-true (zero? (>>> 0 unitP)))
-  (check-true (errorR? (>>> 0 (lambda (v) (errorP (exn (format "~a" v) (current-continuation-marks)))))))
-  (check-true (>>> 0 ($ (lambda (v) (unitP (errorR? v)))) (lambda (v) (errorP (exn (format "~a" v) (current-continuation-marks))))))
+  (check-true (zero? (>>> 0 Right)))
+  (check-true (errorR? (>>> 0 (lambda (v) (Left (exn (format "~a" v) (current-continuation-marks)))))))
+  (check-true (>>> 0 ($ (lambda (v) (Right (errorR? v)))) (lambda (v) (Left (exn (format "~a" v) (current-continuation-marks))))))
   (>>> 0
-       ($ (lambda (v) (unitP (check-equal? '(1) (at-position (errorR-value v))))))
-       (lambda (v) (errorP (exn (format "~a" v) (current-continuation-marks)))))
+       ($ (lambda (v) (Right (check-equal? '(1) (at-position (errorR-value v))))))
+       (lambda (v) (Left (exn (format "~a" v) (current-continuation-marks)))))
   (>>> 0
-       ($ (lambda (v) (unitP (check-equal? (at-position (errorR-value v)) '(1 0)))))
-       ($ errorP)
-       errorP)
-  (check-true (zero? (>>> 0 (>>>/steps unitP))))
+       ($ (lambda (v) (Right (check-equal? (at-position (errorR-value v)) '(1 0)))))
+       ($ Left)
+       Left)
+  (check-true (zero? (>>> 0 (>>>/steps Right))))
+  (>>> #f (lambda _ (mapM check-true (Right #t))))
+  (check-true (>>> #f (lambda (v) (bindM (Right v) (>>>/steps (compose1 Right not))))))
+  (check-equal? '(2 3) (mapM add1 '(1 2)))
+  (check-equal? '(2 3) (joinM '((2) (3))))
   )

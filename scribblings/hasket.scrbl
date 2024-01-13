@@ -1,5 +1,5 @@
 #lang scribble/manual
-@require[@for-label[hasket (except-in racket/base #%app) racket/contract racket/function racket/match]]
+@require[@for-label[hasket (except-in racket/base #%app) racket/contract racket/function racket/match racket/generic]]
 
 @title{hasket}
 @author{zhanghao}
@@ -14,17 +14,27 @@
 
 源码使用Apache-2.0 or MIT协议分发。
 
+@section{monad}
+
+@defidform[gen:monad]{
+                      方法包括：
+                      @defproc[(bindM (monad any/c) (proc (-> any/c any))) any]
+                      @defproc[(mapM (proc (-> any/c any))) (-> any/c any)]
+                      @defproc[(joinM (monad any/c)) any]
+                      其他一同绑定的还有：
+                      @defproc[(monad? (value any/c)) boolean?]
+                      @defproc[(monad-implement? (value any/c)) boolean?]
+                      @defproc[(monad/c (value contract?)) contract?]}
+
+@racket[mapM]是使用@racket[curry]柯里化的。由于racket的@tech{generic interface}缺乏构造器，因此@racket[mapM]无默认实现。
+默认对@racket[Left]和@racket[Right]的结果以及@racket[list]作了优化。
+
 @section{函数}
 
 @defproc[(Left (exception any/c)) any]
 @defproc[(Right (value any/c)) any]
 
 这两个函数分别用于在@tech{pipeline}中报错和返回，没有提供直接处理其返回值的工具，因此一般来说在@tech{pipeline}以外使用这两个函数是无意义的。
-
-@defproc[(mapP (proc (-> any/c any))) (-> any/c any)]
-@defproc[(joinP (m any/c)) any]
-
-@racket[mapM]和@racket[joinM]。其中@racket[mapP]是使用@racket[curry]柯里化的。
 
 @section{结构体}
 
@@ -153,4 +163,5 @@
           @item{2023.12.22 扩展了@racket[lambda/curry/match]使其支持完整的@racket[match-lambda**]语法。完善了@tech{pipeline}的optimizer。}
           @item{2024.1.1 修复了@tech{pipeline}的optimizer。}
           @item{2024.1.2 完善了@tech{pipeline}的optimizer。}
+          @item{2024.1.13 添加了@racket[gen:monad]。}
           ]

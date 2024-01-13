@@ -1,5 +1,7 @@
 #lang racket/base
-(require "../private/pipeline.rkt" "../private/monad.rkt" "../private/position.rkt"
+(require "../private/pipeline.rkt" "../private/generic.rkt" "../private/position.rkt"
+
+         (prefix-in n: "compose.rkt")
 
          (for-syntax racket/base "../private/optimize.rkt"))
 (provide (rename-out (n:>>> >>>)
@@ -7,7 +9,7 @@
          $)
 
 ;; Optimal syntactic forms
-(begin-for-syntax (define optimize (make-pipeline-optimizer #'n:>>> #'n:>>>/steps #'>>> #'>>>/steps #'(resetP (init)) #'errorP #'unitP #'$)))
+(begin-for-syntax (define optimize (make-pipeline-optimizer #'n:>>> #'n:>>>/steps #'>>> #'>>>/steps #'(resetP (init)) #'Left #'Right #'$ #'n:#%app #'lambda)))
 (define-syntax (n:>>> stx)
   (optimize stx))
 (define-syntax (n:>>>/steps stx)
@@ -32,9 +34,9 @@
       (check-true (pred d))))
   (define (check-equal form1 form2)
     (check (lambda (v) (equal? v (let/cc cc (check cc form1)))) form2))
-  (check-equal '(>>> (>>> 0 unitP errorP) unitP) '(>>> (>>> 0 unitP errorP unitP) ($ unitP errorP)))
-  (check-equal '(>>> 0 (>>>/steps ($) unitP errorP) errorP unitP) '(o:>>> 0 (o:>>>/steps ($) unitP errorP) errorP))
-  (check-equal '(>>> 0 (>>>/steps ($) unitP errorP)) '(o:>>> 0 ($) unitP errorP))
-  (check-equal '(>>> 0 ($ unitP) unitP unitP) '(quote 0))
-  (check-equal '(>>> 0 (>>>/steps ($ (>>>/steps unitP)))) '(quote 0))
-  (check-equal '(>>> (>>> (>>> 0) unitP (>>>/steps unitP)) unitP) '(quote 0)))
+  (check-equal '(>>> (>>> 0 Right Left) Right) '(>>> (>>> 0 Right Left Right) ($ Right Left)))
+  (check-equal '(>>> 0 (>>>/steps ($) Right Left) Left Right) '(o:>>> 0 (o:>>>/steps ($) Right Left) Left))
+  (check-equal '(>>> 0 (>>>/steps ($) Right Left)) '(o:>>> 0 ($) Right Left))
+  (check-equal '(>>> 0 ($ Right) Right Right) '(quote 0))
+  (check-equal '(>>> 0 (>>>/steps ($ (>>>/steps Right)))) '(quote 0))
+  (check-equal '(>>> (>>> (>>> 0) Right (>>>/steps Right)) Right) '(quote 0)))

@@ -22,7 +22,7 @@
        #'(lambda (v) (>>> v (lambda (it) (unitP step)) ...))))))
 
 (define-syntax >>>/steps/init #f) ;; A hook, not exported
-(define ((make-pipeline-optimizer >>> >>>/steps o:>>> o:>>>/steps reset Left Right catch) stx)
+(define ((make-pipeline-optimizer >>> >>>/steps o:>>> o:>>>/steps reset Left Right catch app lmd) stx)
   (define-values (identifier=>>>?
                   identifier=>>>/steps?
                   identifier=>>>/steps/init?
@@ -46,7 +46,7 @@
      (flatten (map (lambda (st) (match (syntax-e st)
                                   (`(,op ,sts ...)
                                    #:when (identifier=>>>/steps? op)
-                                   (define opt ((make-pipeline-optimizer >>> >>>/steps o:>>> o:>>>/steps reset Left Right catch) st))
+                                   (define opt ((make-pipeline-optimizer >>> >>>/steps o:>>> o:>>>/steps reset Left Right catch app lmd) st))
                                    (define (get-step-list steps)
                                      (cdr (syntax->list steps)))
                                    (return-if/else opt
@@ -94,7 +94,7 @@
                                      #f
                                      ;; A catcher is installed
                                      ;; Use reset to start a top-level step list
-                                     (datum->syntax st `(,o:>>>/steps (,catch) (lambda (v) (,reset ((,o:>>>/steps ,@nsts) v)))))))
+                                     (datum->syntax st `(,o:>>>/steps (,catch) (,lmd (v) (,app ,reset (,app (,o:>>>/steps ,@nsts) v)))))))
                                 (_ st)))
                  it)
      ;; 末尾的catcher和Right无意义，但这里的所有catcher都已替换为了Right
