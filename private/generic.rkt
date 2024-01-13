@@ -7,7 +7,8 @@
 
 ;; 数据抽象
 ;; 方便generic interface的调度
-;; 使用了动态特性来于bindP、bindPL兼容
+;; 使用了动态特性来与pipeline.rkt兼容
+;; resetP、bindP、bindPL、Left和Right的结果可能会作为gen:monad方法的输入，因此使用wrapper封装，顺带作了优化（即避免使用动态特性）
 (struct wrapper (result) #:property prop:procedure (struct-field-index result))
 (define (n:bindP m p) (wrapper (bindP (wrapper-result m) p)))
 (define (n:bindPL m p) (wrapper (bindPL (wrapper-result m) p)))
