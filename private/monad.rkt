@@ -23,14 +23,14 @@
 (struct (a) errorR ([value : a]))
 (struct (a) unitR ([value : a]))
 (define-type (Result a b) (U (errorR b) (unitR a)))
-(: bindR (All (a b) (-> (Result a b) (-> a (Result a b)) (Result a b))))
+(: bindR (All (a b c d) (-> (Result a b) (-> a (Result c d)) (Result c (U b d)))))
 (define (bindR value proc)
   (cond ((unitR? value) (proc (unitR-value value)))
         (else value)))
 ;; 只是长得像bindM
 ;; proc直接处理errorR
 ;; unitR直接被返回
-(: bindRL (All (a b) (-> (Result a b) (-> (errorR b) (Result a b)) (Result a b))))
+(: bindRL (All (a b c d) (-> (Result a b) (-> (errorR b) (Result c d)) (Result (U a c) d))))
 (define (bindRL value proc)
   (cond ((errorR? value) (proc value))
         (else value)))
@@ -42,22 +42,23 @@
 (define ((unitP a) p) (unitR a))
 (: errorP (All (a) (-> a (-> Position-Value (errorR (At a))))))
 (define ((errorP e) p) (errorR (at e p)))
-(: bindP (-> (Position Any Any) (-> Any (Position Any Any)) (Position Any Any)))
-(define ((bindP m k) p) ((inst bindR Any (At Any)) (m p) (lambda (v) ((k v) p))))
+(: bindP (All (a b c d) (-> (Position a b) (-> a (Position c d)) (Position c (U b d)))))
+(define ((bindP m k) p) ((inst bindR a (At b) c (At d)) (m p) (lambda (v) ((k v) p))))
 ;; 只是长得像bindM，bindP的bindRL版
-(: bindPL (-> (Position Any Any) (-> (errorR (At Any)) (Position Any Any)) (Position Any Any)))
-(define ((bindPL m k) p) ((inst bindRL Any (At Any)) (m p) (lambda (v) ((k (flip-errorR v)) p))))
+(: bindPL (All (a b c d) (-> (Position a b) (-> (errorR (At b)) (Position c d)) (Position (U a c) d))))
+(define ((bindPL m k) p) ((inst bindRL a (At b) c (At d)) (m p) (lambda (v) ((k ((inst flip-errorR b) v)) p))))
 (: resetP (All (a b) (-> Position-Value (-> (Position a b) (Position a b)))))
 (define (((resetP q) m) p) (m q))
 
 (: liftA (All (a) (-> (-> Position-Value Position-Value) (-> (At a) (At a)))))
 (define ((liftA proc) a)
   (struct-copy at a (position (proc (at-position a)))))
-(: liftE (All (a) (-> (-> (At a) (At a)) (-> (errorR (At a)) (errorR (At a))))))
+(: liftE (All (a) (-> (-> a a) (-> (errorR a) (errorR a)))))
 (define ((liftE proc) e)
   (struct-copy errorR e (value (proc (errorR-value e)))))
-(: flip-errorR (-> (errorR (At Any)) (errorR (At Any))))
-(define flip-errorR ((inst liftE Any) ((inst liftA Any) flip)))
+(: flip-errorR (All (a) (-> (errorR (At a)) (errorR (At a)))))
+(define (flip-errorR e)
+  (((inst liftE (At a)) ((inst liftA a) flip)) e))
 
 #|
 Left unit:
@@ -68,9 +69,9 @@ Associative:
 m `bindM` (\a -> (k a) `bindM` h) = (m `bindM` (\a -> (k a)) `bindM` h)
 |#
 
-(: mapP (-> (-> Any Any) (Position Any Any) (Position Any Any)))
+(: mapP (All (a b c) (-> (-> a b) (Position a c) (Position b c))))
 (define (mapP f m)
-  (bindP m (lambda (a) (unitP (f a)))))
-(: joinP (-> (Position (Position Any Any) Any) (Position Any Any)))
+  ((inst bindP a c b c) m (lambda (a) (unitP (f a)))))
+(: joinP (All (a b c) (-> (Position (Position a b) c) (Position a (U b c)))))
 (define (joinP m)
-  (bindP m (lambda (a) (cast a (Position Any Any)))))
+  ((inst bindP (Position a b) c a b) m (lambda (a) a)))
