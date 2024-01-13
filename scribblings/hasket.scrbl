@@ -26,7 +26,7 @@
                       @defproc[(monad-implement? (value any/c)) boolean?]
                       @defproc[(monad/c (value contract?)) contract?]}
 
-@racket[mapM]是使用@racket[curry]柯里化的。由于racket的@tech{generic interface}缺乏构造器，因此@racket[mapM]无默认实现。
+@racket[mapM]是使用@racket[curry]柯里化的。由于racket的@tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{generic interface}缺乏构造器，因此@racket[mapM]无默认实现。
 默认对@racket[Left]和@racket[Right]的结果以及@racket[list]作了优化。
 
 @section{函数}
