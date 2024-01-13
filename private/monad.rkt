@@ -65,9 +65,7 @@
 (define unitL list)
 (: bindL (All (a b) (-> (Listof a) (-> a (Listof b)) (Listof b))))
 (define (bindL l p)
-  (for/fold ((result null))
-            ((element (in-list l)))
-    (append result (p element))))
+  (apply append (map p l)))
 
 #|
 Left unit:

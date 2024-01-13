@@ -1,7 +1,7 @@
 #lang racket/base
 (require racket/generic racket/list "monad.rkt")
 (provide (rename-out (n:bindP bindP) (n:bindPL bindPL) (n:resetP resetP))
-         Left Right
+         Left Right unitL
          bindM joinM mapM
          gen:monad monad-implement? monad? monad/c)
 
