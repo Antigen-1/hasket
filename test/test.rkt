@@ -20,7 +20,7 @@
 (check-equal? (r 2) '(#f 3))
 (check-equal? (r 5) '(#f 6))
 
-(check-true (>>> 0 (lambda (_) ((mapP zero?) (Right 0)))))
-(check-true (>>> 0 (lambda (_) (joinP (Right (Right #t))))))
+(check-true (>>> 0 (lambda (_) ((mapM zero?) (Right 0)))))
+(check-true (>>> 0 (lambda (_) (joinM (Right (Right #t))))))
 
 (check-true (zero? (((curry/n - 2) 1) 1)))
