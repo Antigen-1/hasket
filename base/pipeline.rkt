@@ -16,7 +16,7 @@
   (optimize stx))
 
 (module+ test
-  (require rackunit (submod "..") "compose.rkt" (rename-in (only-in "../private/pipeline.rkt" >>> >>>/steps) (>>> o:>>>) (>>>/steps o:>>>/steps)))
+  (require rackunit (submod "..") (rename-in (only-in "../private/pipeline.rkt" >>> >>>/steps) (>>> o:>>>) (>>>/steps o:>>>/steps)))
 
   (define-namespace-anchor anchor)
 

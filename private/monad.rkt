@@ -30,6 +30,7 @@
 ;; 只是长得像bindM
 ;; proc直接处理errorR
 ;; unitR直接被返回
+;; 其实本可以写成monad，但出于兼容性的考虑，采取了折衷方案
 (: bindRL (All (a b c d) (-> (Result a b) (-> (errorR b) (Result c d)) (Result (U a c) d))))
 (define (bindRL value proc)
   (cond ((errorR? value) (proc value))
