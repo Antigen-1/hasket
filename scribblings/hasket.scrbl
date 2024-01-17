@@ -27,7 +27,9 @@
                       @defproc[(monad/c (value contract?)) contract?]}
 
 @racket[mapM]是使用@racket[curry]柯里化的。由于racket的@tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{generic interface}缺乏构造器，因此@racket[mapM]无默认实现。
-默认对@racket[Left]和@racket[Right]的结果以及@racket[list]作了优化。
+默认对@tech{pipeline}的step以及@racket[list]作了优化。
+
+@bold{注意：}尽管@racket[bindM]支持@tech{pipeline}的step，但其使用并不会影响位置编码。
 
 @section{函数}
 
@@ -38,7 +40,7 @@
 
 @defproc[(unitL (value any/c)) list?]
 
-@racket[list]的别名。
+@racket[list]的别名，但只支持一个参数。
 
 @section{结构体}
 
