@@ -26,7 +26,8 @@
                       @defproc[(monad-implement? (value any/c)) boolean?]
                       @defproc[(monad/c (value contract?)) contract?]}
 
-@racket[mapM]是使用@racket[curry]柯里化的。由于racket的@tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{generic interface}缺乏构造器，因此@racket[mapM]无默认实现。
+@racket[mapM]和@racket[bindM]是使用@racket[curry]柯里化的。
+由于racket的@tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{generic interface}缺乏构造器，因此@racket[mapM]无默认实现。
 默认对@tech{pipeline}的step以及@racket[list]作了优化。
 
 @bold{注意：}尽管@racket[bindM]支持@tech{pipeline}的step，但其使用并不会影响位置编码。
@@ -170,4 +171,5 @@
           @item{2024.1.1 修复了@tech{pipeline}的optimizer。}
           @item{2024.1.2 完善了@tech{pipeline}的optimizer。}
           @item{2024.1.13 添加了@racket[gen:monad]。}
+          @item{2024.1.17 柯里化了@racket[bindM]。}
           ]

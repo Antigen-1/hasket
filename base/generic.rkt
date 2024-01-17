@@ -2,8 +2,9 @@
 (require "../private/generic.rkt"
          racket/function)
 (provide Left Right unitL
-         bindM joinM (rename-out (n:mapM mapM))
+         joinM (rename-out (n:mapM mapM) (n:bindM bindM))
          gen:monad monad-implement? monad? monad/c
          )
 
 (define n:mapM (curry mapM))
+(define n:bindM (curry bindM))
