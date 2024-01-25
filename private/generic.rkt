@@ -1,7 +1,7 @@
 #lang racket/base
-(require racket/generic racket/list "monad.rkt")
+(require racket/generic racket/list racket/stream "monad.rkt")
 (provide (rename-out (n:bindP bindP) (n:bindPL bindPL) (n:resetP resetP))
-         Left Right unitL
+         Left Right unitL unitS
          bindM joinM mapM
          gen:monad monad-implement? monad? monad/c)
 
@@ -16,6 +16,8 @@
 (define Left (compose1 wrapper errorP))
 (define Right (compose1 wrapper unitP))
 
+(define (unitS v) (in-list (list v)))
+
 (define (fallback-joinM m)
   (bindM m (lambda (a) a)))
 
@@ -27,6 +29,8 @@
   #:fast-defaults ([list? (define bindM bindL)
                           (define mapM map)
                           (define joinM append*)]
+                   [stream? (define (bindM s p) (apply stream-append (stream->list (stream-map p s))))
+                            (define mapM stream-map)]
                    [wrapper? (define bindM n:bindP)
                              (define (mapM p m) (n:bindP m (lambda (v) (Right (p v)))))]
                    )

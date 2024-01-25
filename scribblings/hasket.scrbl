@@ -1,5 +1,11 @@
 #lang scribble/manual
-@require[@for-label[hasket (except-in racket/base #%app) racket/contract racket/function racket/match racket/generic]]
+@require[@for-label["../main.rkt"
+                    (except-in racket/base #%app)
+                    racket/contract
+                    racket/function
+                    racket/match
+                    racket/stream]
+                   "TODO.rkt"]
 
 @title{hasket}
 @author{zhanghao}
@@ -28,7 +34,7 @@
 
 @racket[mapM]和@racket[bindM]是使用@racket[curry]柯里化的。
 由于racket的@tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{generic interface}缺乏构造器，因此@racket[mapM]无默认实现。
-默认对@tech{pipeline}的step以及@racket[list]作了优化。
+默认对@tech{pipeline}的step、@racket[stream]以及@racket[list]作了优化。
 
 @bold{注意：}尽管@racket[bindM]支持@tech{pipeline}的step，但其使用并不会影响位置编码。
 
@@ -42,6 +48,10 @@
 @defproc[(unitL (value any/c)) list?]
 
 @racket[list]的别名，但只支持一个参数。
+
+@defproc[(unitS (value any/c)) stream?]
+
+@racket[stream]monad的构建器。
 
 @section{结构体}
 
@@ -102,6 +112,35 @@
                     [first-proc id (lambda p ...) (lambda/curry/match p ...) (curry/n p ...)])]
 
 支持了函数组合，实际上是@racket[compose1]的别名。第一个函数对racket的reader作了一些妥协。
+
+@section{实验}
+
+@subsection{Amb}
+
+@defform[#:literals (let begin quote lambda if amb #%app #%top)
+         (amb-begin maybe-extensions statement ...)
+         #:grammar ([maybe-extensions (#:extensions (mod ...))]
+                    [statement
+                     (let name expr)
+                     (begin statement)
+                     expr
+                     ]
+                    [expr
+                     (lambda (arg ...) body ...)
+                     (proc arg ...)
+                     (#%app proc arg ...)
+                     (quote datum)
+                     (if test then else)
+                     (amb choice ...)
+                     var
+                     (#%top . var)])]
+
+@todo-itemlist[#:done "实现基础语法和计算模型"
+               #:done "实现amb-apply函数"
+               "实现amb-eval函数"
+               "提高性能，减少资源占用"
+               "添加常用语法糖（如果能建立宏系统更好）"
+               "提高报错信息的可读性"]
 
 @section{优化}
 
@@ -172,4 +211,5 @@
           @item{2024.1.2 完善了@tech{pipeline}的optimizer。}
           @item{2024.1.13 添加了@racket[gen:monad]。}
           @item{2024.1.17 柯里化了@racket[bindM]。}
+          @item{2024.1.25 将@racket[stream]实现为monad，添加了@racket[amb]的实验功能。}
           ]
