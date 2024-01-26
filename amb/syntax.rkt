@@ -9,7 +9,7 @@
              (submod racket/performance-hint begin-encourage-inline)
              racket/stxparam racket/list
              syntax/parse/define)
-    (provide n:#%app n:lambda n:quote n:#%top n:if top amb
+    (provide n:#%app n:lambda n:quote n:#%top n:if n:let top amb
              amb-apply
              (rename-out (n:procedure? procedure?) (procedure? primitive?)))
 
@@ -46,11 +46,13 @@
     ;; -------------------------------------------
     (define-syntax-parse-rule (n:quote datum)
       (unitL (quote datum)))
-    (define-syntax-parse-rule (n:lambda (arg:id ...) body ...)
+    (define-syntax-parse-rule (n:lambda (arg ...) body ...)
       (unitL (wrapper (lambda (arg ...) body ...))))
+    (define-syntax-parse-rule (n:let name expr body ...)
+      (bindM expr ((lambda (name) body ...) . unitL)))
     ;; 用来实现#%top
     (define-syntax-parameter top (syntax-rules ()))
-    (define-syntax-parse-rule (n:#%top . v:id)
+    (define-syntax-parse-rule (n:#%top . v)
       (unitL (top . v))))
 
   (require 'interposition-points)
@@ -69,9 +71,9 @@
     ;; 所有变量的绑定和使用均去除了原有的context
     (define expand-statement-list
       (lambda/curry/match
-       ((qut app lmd top amb nif name `(,fst ,ost ...) available-variables)
-        (define recursive-expand (expand-statement-list qut app lmd top amb nif #f))
-        (define recursive-expand/name (expand-statement-list qut app lmd top amb nif))
+       ((lt qut app lmd top amb nif name `(,fst ,ost ...) available-variables)
+        (define recursive-expand/name (expand-statement-list lt qut app lmd top amb nif))
+        (define recursive-expand (recursive-expand/name #f))
         (define (maybe-wrap-name stx)
           ;; 支持递归使用的工具函数
           (if name
@@ -100,12 +102,10 @@
           ;; ---------------------------------------------------------------------
           (`(,let ,name ,expr)
            #:when (and (identifier? let) (free-identifier=? let #'let) (identifier? name))
-           (list `(,#'bindM
-                   ,@(recursive-expand/name (strip-context name) (list expr) (cons name available-variables))
-                   (,#'#%app (,#'lambda (,(strip-context name))
-                                        ,@(recursive-expand ost (cons name available-variables)))
-                             .
-                             ,#'unitL))))
+           (list `(,lt
+                   ,(strip-context name)
+                   ,(wrap-expr (recursive-expand/name (strip-context name) (list expr) (cons name available-variables)))
+                   ,@(recursive-expand ost (cons name available-variables)))))
           (`(,a ,choices ...)
            #:when (and (identifier? a) (free-identifier=? a #'n:amb))
            (cons `(,amb ,@(bindM choices (lambda (ch) (list (maybe-wrap-name (wrap-expr (recursive-expand/name name (list ch) available-variables)))))))
@@ -116,18 +116,18 @@
                        (free-identifier=? lambda #'lambda)
                        (list? unwrapped)
                        (andmap identifier? unwrapped))
-           (cons (maybe-wrap-name `(,lmd ,(map strip-context unwrapped) ,@(recursive-expand bodies (append unwrapped available-variables))))
+           (cons (maybe-wrap-name `(,lmd ,(map strip-context unwrapped) ,(wrap-expr (recursive-expand bodies (append unwrapped available-variables)))))
                  (recursive-expand ost available-variables)))
           (`(,begin ,sts ...)
            #:when (and (identifier? begin) (free-identifier=? begin #'begin))
-           (cons (maybe-wrap-name `(,#'begin ,@(recursive-expand sts available-variables)))
+           (cons (maybe-wrap-name `(,#'begin ,(wrap-expr (recursive-expand sts available-variables))))
                  (recursive-expand ost available-variables)))
           (`(,if ,test ,then ,else)
            #:when (and (identifier? if) (free-identifier=? if #'if))
            (cons (maybe-wrap-name
-                  `(,nif ,@(recursive-expand (list test) available-variables)
-                         ,@(recursive-expand (list then) available-variables)
-                         ,@(recursive-expand (list else) available-variables)))
+                  `(,nif ,(wrap-expr (recursive-expand (list test) available-variables))
+                         ,(wrap-expr (recursive-expand (list then) available-variables))
+                         ,(wrap-expr (recursive-expand (list else) available-variables))))
                  (recursive-expand ost available-variables)))
           (`(,a ,proc ,args ...)
            #:when (and (identifier? a) (free-identifier=? a #'#%app))
@@ -138,10 +138,10 @@
                  (recursive-expand ost available-variables)))
           ;; ---------------------------------------------------------------------
           (_ (raise-syntax-error #f "Illegal statement" fst))))
-       ((_ _ _ _ _ _ _ `() _)
+       ((_ _ _ _ _ _ _ _ `() _)
         null)))
 
-    (define (n:expand-statement-list sts) (expand-statement-list #'n:quote #'n:#%app #'n:lambda #'n:#%top #'amb #'n:if #f sts null))
+    (define (n:expand-statement-list sts) (expand-statement-list #'n:let #'n:quote #'n:#%app #'n:lambda #'n:#%top #'amb #'n:if #f sts null))
 
     (define-splicing-syntax-class extensions
       #:description "添加进命名空间的模块"
