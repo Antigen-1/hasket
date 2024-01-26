@@ -118,11 +118,11 @@
 @subsection{Amb}
 
 @defform[#:literals (let begin quote lambda if amb #%app #%top)
-         (amb-begin maybe-extensions statement ...)
+         (amb-begin maybe-extensions statement ... expr)
          #:grammar ([maybe-extensions (#:extensions (mod ...))]
                     [statement
                      (let name expr)
-                     ]
+                     expr]
                     [expr
                      (begin statement ... expr)
                      (lambda (arg ...) statement ... expr)
