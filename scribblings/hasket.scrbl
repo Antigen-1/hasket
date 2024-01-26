@@ -122,11 +122,10 @@
          #:grammar ([maybe-extensions (#:extensions (mod ...))]
                     [statement
                      (let name expr)
-                     (begin statement)
-                     expr
                      ]
                     [expr
-                     (lambda (arg ...) body ...)
+                     (begin statement ... expr)
+                     (lambda (arg ...) statement ... expr)
                      (proc arg ...)
                      (#%app proc arg ...)
                      (quote datum)
