@@ -136,10 +136,10 @@
                      (#%top . var)])]
 
 @todo-itemlist[#:done "实现基础语法和计算模型"
-               #:done "实现amb-apply函数"
-               "实现amb-eval函数"
-               "提高性能，减少资源占用"
-               "添加常用语法糖（如果能建立宏系统更好）"
+               #:working "实现一些常用函数"
+               #:working "提高性能，减少资源占用"
+               #:working "修复bug"
+               "添加常用语法糖"
                "提高报错信息的可读性"]
 
 @section{优化}

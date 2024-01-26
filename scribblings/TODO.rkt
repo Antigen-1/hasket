@@ -5,6 +5,9 @@
 (begin-for-syntax
   (define-splicing-syntax-class item
     #:description "事物"
+    (pattern (~seq #:working cont)
+             #:with done? #'null
+             #:with content #'cont)
     (pattern (~seq #:done cont)
              #:with done? #'#t
              #:with content #'cont)
@@ -13,4 +16,8 @@
              #:with content #'cont)))
 
 (define-syntax-parse-rule (todo-itemlist i:item ...)
-  (itemlist (item ((if i.done? (lambda (c) (list c ": done!")) bold) i.content)) ...))
+  (itemlist (item ((cond ((null? i.done?) (lambda (c) (list c ": working!")))
+                         (i.done? (lambda (c) (list c ": done!")))
+                         (else bold))
+                   i.content))
+            ...))

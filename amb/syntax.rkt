@@ -10,7 +10,8 @@
              racket/stxparam racket/list
              syntax/parse/define)
     (provide n:#%app n:lambda n:quote n:#%top n:if top amb
-             amb-apply)
+             amb-apply
+             (rename-out (n:procedure? procedure?) (procedure? primitive?)))
 
     ;; Inline instructions
     (begin-encourage-inline
@@ -30,7 +31,9 @@
         (wrapper
          (lambda (p args)
            (joinM (n:#%app (unitL call-all) p (mapM (mapM unitL) args))))))
-      )
+
+      (define (n:procedure? v)
+        (or (procedure? v) (wrapper? v))))
 
     (define-syntax-parse-rule (amb choice ...)
       (append choice ...))
@@ -153,7 +156,7 @@
        #`(let ((namespace (make-hasket-base-namespace)))
            (parameterize ((current-namespace namespace))
              (namespace-attach-module (namespace-anchor->empty-namespace anchor) (module-path-index-resolve interposition-points))
-             (namespace-require (list 'only (module-path-index-resolve interposition-points) 'amb-apply))
+             (namespace-require (list 'only (module-path-index-resolve interposition-points) 'amb-apply 'procedure? 'primitive?))
              (map namespace-require ext.mods))
            (syntax-parameterize ((top (syntax-rules () ((_ . v) (namespace-refer namespace 'v 'amb-begin)))))
              #,@(n:expand-statement-list (syntax->list #'(statement ...))))))))
@@ -170,6 +173,10 @@
     (check-equal? (amb-begin ((lambda (n1 n2) (+ n1 n2)) 1 2)) '(3))
     (check-equal? (amb-begin (if (amb #f #f #t) 1 2)) '(2 2 1))
     (check-equal? (amb-begin (amb-apply (lambda (n1 n2 n3) (amb-apply + (list n1 n2 n3))) (list (amb 0 1) 2 3))) '(5 6))
+    (check-equal? (amb-begin (primitive? +)) '(#t))
+    (check-equal? (amb-begin (primitive? (lambda (a) a))) '(#f))
+    (check-equal? (amb-begin (procedure? +)) '(#t))
+    (check-equal? (amb-begin (procedure? (lambda (a) a))) '(#t))
     (check-equal? (amb-begin (let map (lambda (p l) (if (null? l) null (cons (p (car l)) (map p (cdr l)))))) (map add1 (list 1 2))) '((2 3)))
     (check-equal? (amb-begin (if (begin (let a (amb #f #t)) a) 1 2)) '(2 1))
     (check-equal? (amb-begin (let make (lambda () (amb 1 2 3)))
