@@ -16,54 +16,34 @@
   (define-runtime-module-path-index list-lib '(submod "." list))
 
   (displayln "Eight queens")
-  (displayln "Several instructions are cached")
+  (displayln "Optimal")
   (print-and-test
    (amb-begin
     #:extensions ((module-path-index-resolve list-lib))
     (let cons/cached cons)
     (let check/cached check-current)
-    (let list/cached list)
     (let reverse/cached reverse)
+    (let null/cached null)
     (let make-queen (lambda (n) (amb (cons/cached n 1) (cons/cached n 2) (cons/cached n 3) (cons/cached n 4) (cons/cached n 5) (cons/cached n 6) (cons/cached n 7) (cons/cached n 8))))
-    (let q1 (make-queen 1))
-    (let result0 (list/cached q1))
-    (let q2 (make-queen 2))
-    (if (check/cached q2 result0)
-        (amb)
-        (begin
-          (let result1 (cons/cached q2 result0))
-          (let q3 (make-queen 3))
-          (if (check/cached q3 result1)
-              (amb)
-              (begin
-                (let result2 (cons/cached q3 result1))
-                (let q4 (make-queen 4))
-                (if (check/cached q4 result2)
-                    (amb)
-                    (begin
-                      (let result3 (cons/cached q4 result2))
-                      (let q5 (make-queen 5))
-                      (if (check/cached q5 result3)
-                          (amb)
-                          (begin
-                            (let result4 (cons/cached q5 result3))
-                            (let q6 (make-queen 6))
-                            (if (check/cached q6 result4)
-                                (amb)
-                                (begin
-                                  (let result5 (cons/cached q6 result4))
-                                  (let q7 (make-queen 7))
-                                  (if (check/cached q7 result5)
-                                      (amb)
-                                      (begin
-                                        (let result6 (cons/cached q7 result5))
-                                        (let q8 (make-queen 8))
-                                        (if (check/cached q8 result6)
-                                            (amb)
-                                            (begin
-                                              (let result7 (cons/cached q8 result6))
-                                              (reverse/cached result7))))))))))))))))
+    (let make-and-merge (lambda (n o) (let q (make-queen n)) (if (check/cached q o) (amb) (cons/cached q o))))
+    (reverse/cached
+     (make-and-merge
+      8
+      (make-and-merge
+       7
+       (make-and-merge
+        6
+        (make-and-merge
+         5
+         (make-and-merge
+          4
+          (make-and-merge
+           3
+           (make-and-merge
+            2
+            (make-and-merge 1 null/cached))))))))))
    (lambda (l1)
+     (displayln "Typical")
      (print-and-test
       (let* ((make-queen (lambda (n) (map (lambda (m) (cons n m)) (list 1 2 3 4 5 6 7 8))))
              (ns (list 1 2 3 4 5 6 7 8))

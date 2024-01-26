@@ -21,10 +21,11 @@
         (define (call-primitive procedure args)
           (bindM (apply cartesian-product args)
                  (compose1 unitL (call procedure))))
+        (define (call-wrapped procedure args)
+          (bindM (apply cartesian-product args)
+                 (compose1 (call (wrapper-procedure procedure)) (mapM unitL))))
 
-        (if (wrapper? proc)
-            (call (wrapper-procedure proc) args)
-            (call-primitive proc args)))
+        ((if (wrapper? proc) call-wrapped call-primitive) proc args))
       (define amb-apply
         (wrapper
          (lambda (p args)
