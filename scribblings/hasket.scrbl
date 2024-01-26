@@ -129,6 +129,7 @@
                      (proc arg ...)
                      (#%app proc arg ...)
                      (quote datum)
+                     datum
                      (if test then else)
                      (amb choice ...)
                      var
