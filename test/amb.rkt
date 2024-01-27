@@ -31,7 +31,7 @@
     (let make-queen (lambda (n) (amb (cons/cached n 1) (cons/cached n 2) (cons/cached n 3) (cons/cached n 4) (cons/cached n 5) (cons/cached n 6) (cons/cached n 7) (cons/cached n 8))))
     (let make-and-merge (lambda (n o) (let q (make-queen n)) (if (check/cached q o) (amb) (cons/cached q o))))
     (let foldl (lambda (p o l) (if (null?/cached l) o (foldl p (p (car/cached l) o) (cdr/cached l)))))
-    (reverse/cached (foldl make-and-merge null/cached (list 1 2 3 4 5 6 7 8))))
+    (reverse/cached (foldl make-and-merge null/cached (list/cached 1 2 3 4 5 6 7 8))))
    (lambda (l1)
      (displayln "Typical")
      (print-and-test

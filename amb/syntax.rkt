@@ -4,18 +4,12 @@
            (for-meta 2 "../base/main.rkt"))
   (provide amb-begin (rename-out (n:amb amb)))
 
-  (module interposition-points "../base/main.rkt"
-    (require (for-syntax "../base/main.rkt")
-             (submod racket/performance-hint begin-encourage-inline)
-             racket/stxparam racket/list
-             syntax/parse/define)
-    (provide n:#%app n:lambda n:quote n:#%top n:if n:let top amb
-             amb-apply
-             (rename-out (n:procedure? procedure?) (procedure? primitive?)))
-
+  (module procedure "../base/main.rkt"
+    (require (submod racket/performance-hint begin-encourage-inline) racket/list)
+    (provide wrap call-all amb-apply n:procedure?)
     ;; Inline instructions
     (begin-encourage-inline
-      (struct wrapper (procedure))
+      (struct wrapper (procedure) #:constructor-name wrap)
 
       (define (call-all proc args)
         (define call (curry/n apply 2))
@@ -27,13 +21,21 @@
                  (compose1 (call (wrapper-procedure procedure)) (mapM unitL))))
 
         ((if (wrapper? proc) call-wrapped call-primitive) proc args))
-      (define amb-apply
-        (wrapper
-         (lambda (p args)
-           (joinM (n:#%app (unitL call-all) p (mapM (mapM unitL) args))))))
 
       (define (n:procedure? v)
-        (or (procedure? v) (wrapper? v))))
+        (or (procedure? v) (wrapper? v)))
+
+      (define amb-apply
+        (wrap
+         (lambda (proc args)
+           (bindM proc (lambda (p) (bindM args (lambda (a) (call-all p (mapM unitL a)))))))))))
+
+  (module interposition-points "../base/main.rkt"
+    (require (for-syntax "../base/main.rkt")
+             (submod ".." procedure)
+             racket/stxparam
+             syntax/parse/define)
+    (provide n:#%app n:lambda n:quote n:#%top n:if n:let top amb)
 
     (define-syntax-parse-rule (amb choice ...)
       (append choice ...))
@@ -47,7 +49,7 @@
     (define-syntax-parse-rule (n:quote datum)
       (unitL (quote datum)))
     (define-syntax-parse-rule (n:lambda (arg ...) body ...)
-      (unitL (wrapper (lambda (arg ...) body ...))))
+      (unitL (wrap (lambda (arg ...) body ...))))
     (define-syntax-parse-rule (n:let name expr body ...)
       (bindM expr ((lambda (name) body ...) . unitL)))
     ;; 用来实现#%top
@@ -58,8 +60,10 @@
   (require 'interposition-points)
 
   (module primitives "../base/main.rkt"
-    (require (submod ".." interposition-points))
-    (provide amb-apply primitive? procedure?))
+    (require (submod ".." procedure))
+    (provide amb-apply
+             (rename-out (procedure? primitive?)
+                         (n:procedure? procedure?))))
 
   (require 'primitives)
   (define-runtime-module-path-index primitives '(submod "." primitives))
@@ -179,6 +183,7 @@
     (check-equal? (amb-begin ((lambda (n1 n2) (+ n1 n2)) 1 2)) '(3))
     (check-equal? (amb-begin (if (amb #f #f #t) 1 2)) '(2 2 1))
     (check-equal? (amb-begin (amb-apply (lambda (n1 n2 n3) (amb-apply + (list n1 n2 n3))) (list (amb 0 1) 2 3))) '(5 6))
+    (check-equal? (amb-begin (amb-apply + (list (amb 0 1) 2 3))) '(5 6))
     (check-equal? (amb-begin (primitive? +)) '(#t))
     (check-equal? (amb-begin (primitive? (lambda (a) a))) '(#f))
     (check-equal? (amb-begin (procedure? +)) '(#t))
