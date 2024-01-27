@@ -56,7 +56,13 @@
       (unitL (top . v))))
 
   (require 'interposition-points)
-  (define-runtime-module-path-index interposition-points '(submod "." interposition-points))
+
+  (module primitives "../base/main.rkt"
+    (require (submod ".." interposition-points))
+    (provide amb-apply primitive? procedure?))
+
+  (require 'primitives)
+  (define-runtime-module-path-index primitives '(submod "." primitives))
 
   (define-syntax (n:amb stx)
     (raise-syntax-error #f "Used out of amb-begin" stx))
@@ -153,13 +159,13 @@
   (define-syntax (amb-begin stx)
     (syntax-parse stx
       ((_ ext:extensions statement ...)
-       #`(let ((namespace (make-hasket-base-namespace)))
-           (parameterize ((current-namespace namespace))
-             (namespace-attach-module (namespace-anchor->empty-namespace anchor) (module-path-index-resolve interposition-points))
-             (namespace-require (list 'only (module-path-index-resolve interposition-points) 'amb-apply 'procedure? 'primitive?))
-             (map namespace-require ext.mods))
-           (syntax-parameterize ((top (syntax-rules () ((_ . v) (namespace-refer namespace 'v 'amb-begin)))))
-             #,@(n:expand-statement-list (syntax->list #'(statement ...))))))))
+       #`(parameterize ((compile-enforce-module-constants #t))
+           (let ((namespace (make-hasket-base-namespace)))
+             (namespace-require! primitives (namespace-anchor->empty-namespace anchor) namespace)
+             (parameterize ((current-namespace namespace))
+                 (map namespace-require ext.mods))
+             (syntax-parameterize ((top (syntax-rules () ((_ . v) (namespace-refer namespace 'v 'amb-begin)))))
+               #,@(n:expand-statement-list (syntax->list #'(statement ...)))))))))
 
   (module* test "../base/main.rkt"
     (require rackunit racket/runtime-path (submod "..")
