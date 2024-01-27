@@ -1,5 +1,5 @@
 (module test "../main.rkt"
-  (require rackunit)
+  (require rackunit racket/stream)
 
   (define tree '(a (b) c))
   (define a (Right . add1))
@@ -27,4 +27,6 @@
 
   (struct A (v) #:transparent #:methods gen:monad [(define (mapM f m) (A (f (A-v m))))])
   (check-equal? (mapM add1 (A 1)) (A 2))
-  )
+
+  (check-equal? (mapM add1 (unitL 1)) '(2))
+  (check-equal? (stream->list (mapM add1 (unitS 1))) '(2)))
