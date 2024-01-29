@@ -118,9 +118,8 @@
 @subsection{Amb}
 
 @defform[#:literals (let begin quote lambda if amb #%app #%top)
-         (amb-begin maybe-extensions statement ... expr)
-         #:grammar ([maybe-extensions (#:extensions (mod ...))]
-                    [statement
+         (amb-begin statement ... expr)
+         #:grammar ([statement
                      (let name expr)
                      expr]
                     [expr
@@ -212,4 +211,5 @@
           @item{2024.1.13 添加了@racket[gen:monad]。}
           @item{2024.1.17 柯里化了@racket[bindM]。}
           @item{2024.1.25 将@racket[stream]实现为monad，添加了@racket[amb]的实验功能。}
+          @item{2024.1.29 完善了@racket[amb-begin]的语法，同时进行优化。}
           ]
