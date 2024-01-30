@@ -45,7 +45,6 @@
       (syntax-rules ()
         ((_ id) (or `(,(? (identifier=? #'#%top)) ,(? identifier? id)) (? symbol? (app (lambda (s) (datum->syntax #f s)) id))))))
 
-    ;; quote #%app lambda if #%top n:amb是用作hook
     ;; 所有amb-begin内绑定的变量及其引用均去除了原有的context
     (define expand-statement-list
       (lambda/curry/match
