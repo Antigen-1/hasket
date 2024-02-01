@@ -1,10 +1,12 @@
 (module syntax "../base/main.rkt"
   (require syntax/parse/define "interposition-points.rkt"
-           (for-syntax racket/match syntax/strip-context "../base/main.rkt")
+           (for-syntax racket/match racket/list syntax/strip-context "../base/main.rkt")
            (for-meta 2 "../base/main.rkt"))
-  (provide amb-begin (rename-out (n:amb amb)))
+  (provide amb-begin (rename-out (n:amb amb)) ramb)
 
   (define-syntax (n:amb stx)
+    (raise-syntax-error #f "Used out of amb-begin" stx))
+  (define-syntax (ramb stx)
     (raise-syntax-error #f "Used out of amb-begin" stx))
 
   (begin-for-syntax
@@ -24,6 +26,9 @@
     (define-match-expander amb-clause
       (syntax-rules ()
         ((_ id) `(,(? (identifier=? #'n:amb)) ,@id))))
+    (define-match-expander ramb-clause
+      (syntax-rules ()
+        ((_ id) `(,(? (identifier=? #'ramb)) ,@id))))
     (define-match-expander lambda-clause
       (syntax-rules ()
         ((_ id1 id2) `(,(? (identifier=? #'lambda))
@@ -78,6 +83,9 @@
           ((amb-clause choices)
            (cons `(,amb ,@(bindM choices (lambda (ch) (list (maybe-wrap-name (wrap-expr (recursive-expand/name name (list ch) available-variables)))))))
                  (recursive-expand ost available-variables)))
+          ((ramb-clause choices)
+           (cons `(,amb ,@(shuffle (bindM choices (lambda (ch) (list (maybe-wrap-name (wrap-expr (recursive-expand/name name (list ch) available-variables))))))))
+                 (recursive-expand ost available-variables)))
           ((lambda-clause unwrapped bodies)
            (cons (maybe-wrap-name `(,lmd ,(map strip-context unwrapped) ,(wrap-expr (recursive-expand bodies (append unwrapped available-variables)))))
                  (recursive-expand ost available-variables)))
@@ -112,6 +120,7 @@
              (for-syntax "../base/main.rkt"))
 
     (check-equal? (amb-begin (amb 1)) '(1))
+    (check-equal? (sort (amb-begin (ramb 1 2)) <) (amb-begin (amb 1 2)))
     (check-equal? (amb-begin 1) '(1))
     (check-eq? (car (amb-begin +)) +)
     (check-equal? (amb-begin (let a 1) (list a)) '((1)))
@@ -141,7 +150,6 @@
                     (2 3)
                     (3 1)
                     (3 2)))
-
     (let ((a 1))
       (check-equal? (amb-begin (add1 a)) '(2)))
     ))

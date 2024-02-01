@@ -131,6 +131,7 @@
                      datum
                      (if test then else)
                      (amb choice ...)
+                     (ramb choice ...)
                      var
                      (#%top . var)])]
 
@@ -212,4 +213,5 @@
           @item{2024.1.17 柯里化了@racket[bindM]。}
           @item{2024.1.25 将@racket[stream]实现为monad，添加了@racket[amb]的实验功能。}
           @item{2024.1.29 完善了@racket[amb-begin]的语法，同时进行优化。}
+          @item{2024.2.1 添加了@racket[ramb]。}
           ]
