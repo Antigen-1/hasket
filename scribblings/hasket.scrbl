@@ -117,7 +117,7 @@
 
 @subsection{Amb}
 
-@defform[#:literals (let begin quote lambda if amb #%app #%top)
+@defform[#:literals (let begin quote lambda if amb ramb #%app #%top)
          (amb-begin statement ... expr)
          #:grammar ([statement
                      (let name expr)
