@@ -17,8 +17,7 @@
    (amb-begin
     (let make-queen (lambda (n) (amb (cons n 1) (cons n 2) (cons n 3) (cons n 4) (cons n 5) (cons n 6) (cons n 7) (cons n 8))))
     (let make-and-merge (lambda (n o) (let q (make-queen n)) (if (check-current q o) (amb) (cons q o))))
-    (let foldl (lambda (p o l) (if (null? l) o (foldl p (p (car l) o) (cdr l)))))
-    (reverse (foldl make-and-merge null (list 1 2 3 4 5 6 7 8))))
+    (reverse (amb-foldl make-and-merge null '(1 2 3 4 5 6 7 8))))
    (lambda (l1)
      (displayln "Typical")
      (print-and-test

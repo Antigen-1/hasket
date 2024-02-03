@@ -10,6 +10,7 @@
     (raise-syntax-error #f "Used out of amb-begin" stx))
 
   (begin-for-syntax
+    ;; Utilities
     (define identifer-symbol=?
       (lambda/curry/match
        ((id1 id2)
@@ -18,37 +19,63 @@
       (lambda/curry/match
        ((base v)
         (and (identifier? v) (free-identifier=? base v)))))
+    (define self-evaluating?
+      (lambda/curry/match
+       ((avars v)
+        (match v
+          ((quote-clause _) #t)
+          ((var-clause v) #:when (not (findf (identifer-symbol=? v) avars)) #t)
+          (_ #f)))))
+    (define (get-value v)
+      (match v
+        ((quote-clause v) `(,#'quote ,v))
+        ((var-clause v) v)))
+    (define (wrap-expr stx)
+          ;; 打包为一个整体
+          #`(let () #,@stx))
 
-    ;; abstract syntax
+    ;; Abstract syntax
     (define-match-expander let-clause
       (syntax-rules ()
-        ((_ id1 id2) `(,(? (identifier=? #'let)) ,(? identifier? id1) ,id2))))
+        ((_ name expr) (app syntax-e `(,(? (identifier=? #'let)) ,(? identifier? name) ,expr)))))
     (define-match-expander amb-clause
       (syntax-rules ()
-        ((_ id) `(,(? (identifier=? #'n:amb)) ,@id))))
+        ((_ choices) (app syntax-e `(,(? (identifier=? #'n:amb)) ,@choices)))))
     (define-match-expander ramb-clause
       (syntax-rules ()
-        ((_ id) `(,(? (identifier=? #'ramb)) ,@id))))
+        ((_ choices) (app syntax-e `(,(? (identifier=? #'ramb)) ,@choices)))))
     (define-match-expander lambda-clause
       (syntax-rules ()
-        ((_ id1 id2) `(,(? (identifier=? #'lambda))
-                       ,(app syntax-e (? list? (? (lambda (l) (andmap identifier? l)) id1)))
-                       ,@id2))))
+        ((_ args bodies)
+         (app syntax-e
+              `(,(? (identifier=? #'lambda))
+                ,(app syntax-e (? list? (? (lambda (l) (andmap identifier? l)) args)))
+                ,@bodies)))))
     (define-match-expander begin-clause
       (syntax-rules ()
-        ((_ id) `(,(? (identifier=? #'begin)) ,@id))))
+        ((_ sts) (app syntax-e `(,(? (identifier=? #'begin)) ,@sts)))))
     (define-match-expander if-clause
       (syntax-rules ()
-        ((_ id1 id2 id3) `(,(? (identifier=? #'if)) ,id1 ,id2 ,id3))))
+        ((_ test then alt) (app syntax-e `(,(? (identifier=? #'if)) ,test ,then ,alt)))))
     (define-match-expander app-clause
       (syntax-rules ()
-        ((_ id1 id2) (or `(,(? (identifier=? #'#%app)) ,id1 ,@id2) `(,id1 ,@id2)))))
+        ((_ proc args) (app syntax-e (or `(,(? (identifier=? #'#%app)) ,proc ,@args) `(,proc ,@args))))))
     (define-match-expander quote-clause
       (syntax-rules ()
-        ((_ id) (or `(,(? (identifier=? #'quote)) ,id) (? (not . (lambda (v) (or (symbol? v) (list? v)))) id)))))
-    (define-match-expander top-clause
+        ((_ datum) (app syntax-e (or `(,(? (identifier=? #'quote)) ,datum) (? (not . (lambda (v) (or (symbol? v) (pair? v)))) datum))))))
+    (define-match-expander var-clause
       (syntax-rules ()
-        ((_ id) (or `(,(? (identifier=? #'#%top)) ,(? identifier? id)) (? symbol? (app (lambda (s) (datum->syntax #f s)) id))))))
+        ((_ var) (or (app syntax-e `(,(? (identifier=? #'#%top)) . ,(? identifier? var))) (? identifier? var)))))
+
+    ;; Optimizers
+    (define (make-if nif test then alt avars expand)
+      (cond ((andmap (self-evaluating? avars) (list test then alt))
+             `(,#'#%app ,#'unitL (,#'if ,(get-value test) ,(get-value then) ,(get-value alt))))
+            ((self-evaluating? avars test)
+             `(,#'if ,(get-value test) ,(wrap-expr (expand (list then) avars)) ,(wrap-expr (expand (list alt) avars))))
+            (else `(,nif ,(wrap-expr (expand (list test) avars))
+                         ,(wrap-expr (expand (list then) avars))
+                         ,(wrap-expr (expand (list alt) avars))))))
 
     ;; 所有amb-begin内绑定的变量及其引用均去除了原有的context
     (define expand-statement-list
@@ -62,17 +89,14 @@
               #`(letrec ((#,name #,stx))
                   #,name)
               stx))
-        (define (wrap-expr stx)
-          ;; 打包为一个整体
-          #`(let () #,@stx))
-        (match (syntax-e fst)
+        (match fst
           ((quote-clause datum)
            (cons `(,qut ,datum) (recursive-expand ost available-variables)))
-          ((top-clause id)
+          ((var-clause id)
            #:when (findf (identifer-symbol=? id) available-variables)
-           (cons (strip-context fst) (recursive-expand ost available-variables)))
-          ((top-clause id)
-           (cons `(,top . ,fst) (recursive-expand ost available-variables)))
+           (cons (strip-context id) (recursive-expand ost available-variables)))
+          ((var-clause id)
+           (cons `(,top . ,id) (recursive-expand ost available-variables)))
           ;; name总是由let form输入，amb form接收使用并传递给choices，以下的其他形式只会接收使用name
           ;; ---------------------------------------------------------------------
           ((let-clause name expr)
@@ -92,11 +116,8 @@
           ((begin-clause sts)
            (cons (maybe-wrap-name `(,#'begin ,(wrap-expr (recursive-expand sts available-variables))))
                  (recursive-expand ost available-variables)))
-          ((if-clause test then else)
-           (cons (maybe-wrap-name
-                  `(,nif ,(wrap-expr (recursive-expand (list test) available-variables))
-                         ,(wrap-expr (recursive-expand (list then) available-variables))
-                         ,(wrap-expr (recursive-expand (list else) available-variables))))
+          ((if-clause test then alt)
+           (cons (maybe-wrap-name (make-if nif test then alt available-variables recursive-expand))
                  (recursive-expand ost available-variables)))
           ((app-clause proc args)
            (cons (maybe-wrap-name `(,app ,@(bindM (cons proc args) (lambda (t) (recursive-expand (list t) available-variables)))))
@@ -123,6 +144,7 @@
     (check-equal? (sort (amb-begin (ramb 1 2)) <) (amb-begin (amb 1 2)))
     (check-equal? (amb-begin 1) '(1))
     (check-eq? (car (amb-begin +)) +)
+    (check-eq? (car (amb-begin (#%top . +))) +)
     (check-equal? (amb-begin (let a 1) (list a)) '((1)))
     (check-equal? (amb-begin (let op (amb + - * /)) (op 1 2)) '(3 -1 2 1/2))
     (check-equal? (amb-begin ((lambda (n1 n2) (+ n1 n2)) 1 2)) '(3))

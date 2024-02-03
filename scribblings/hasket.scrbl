@@ -214,4 +214,5 @@
           @item{2024.1.25 将@racket[stream]实现为monad，添加了@racket[amb]的实验功能。}
           @item{2024.1.29 完善了@racket[amb-begin]的语法，同时进行优化。}
           @item{2024.2.1 添加了@racket[ramb]。}
+          @item{2024.2.4 为@racket[amb-begin]添加了一个简单的实验性的优化器，并实现了一些高阶函数。}
           ]
