@@ -31,8 +31,14 @@
         ((quote-clause v) `(,#'quote ,v))
         ((var-clause v) v)))
     (define (wrap-expr stx)
-          ;; 打包为一个整体
-          #`(let () #,@stx))
+      ;; 打包为一个整体
+      #`(let () #,@stx))
+    (define ((make-maybe-wrap-name name) stx)
+      ;; 支持递归使用的工具函数
+      (if name
+          #`(letrec ((#,name #,stx))
+              #,name)
+          stx))
 
     ;; Abstract syntax
     (define-match-expander let-clause
@@ -70,12 +76,27 @@
     ;; Optimizers
     (define (make-if nif test then alt avars expand)
       (cond ((andmap (self-evaluating? avars) (list test then alt))
-             `(,#'#%app ,#'unitL (,#'if ,(get-value test) ,(get-value then) ,(get-value alt))))
+             `(,#'#%app ,#'unitL ,(if (get-value test) (get-value then) (get-value alt))))
             ((self-evaluating? avars test)
              `(,#'if ,(get-value test) ,(wrap-expr (expand (list then) avars)) ,(wrap-expr (expand (list alt) avars))))
             (else `(,nif ,(wrap-expr (expand (list test) avars))
                          ,(wrap-expr (expand (list then) avars))
                          ,(wrap-expr (expand (list alt) avars))))))
+    (define (make-let nlet name expr bodies avars expand/name)
+      (cond ((self-evaluating? avars expr)
+             `(,#'let ((,(strip-context name) (,#'#%app ,#'unitL ,(get-value expr))))
+                      ,@(expand/name #f bodies (cons name avars))))
+            (else `(,nlet ,(strip-context name) ,(wrap-expr (expand/name (strip-context name) (list expr) (cons name avars)))
+                          ,@(expand/name #f bodies (cons name avars))))))
+    (define (make-amb #:shuffle? shuffle?
+                      amb choices
+                      avars name
+                      expand/name
+                      )
+      (define post (if shuffle? shuffle values))
+      (cond ((andmap (self-evaluating? avars) choices)
+             `(,#'#%app ,#'list ,@(post (map get-value choices))))
+            (else `(,amb ,@(post (mapM (lambda (ch) ((make-maybe-wrap-name name) (wrap-expr (expand/name name (list ch) avars)))) choices))))))
 
     ;; 所有amb-begin内绑定的变量及其引用均去除了原有的context
     (define expand-statement-list
@@ -83,12 +104,7 @@
        ((lt qut app lmd top amb nif name `(,fst ,ost ...) available-variables)
         (define recursive-expand/name (expand-statement-list lt qut app lmd top amb nif))
         (define recursive-expand (recursive-expand/name #f))
-        (define (maybe-wrap-name stx)
-          ;; 支持递归使用的工具函数
-          (if name
-              #`(letrec ((#,name #,stx))
-                  #,name)
-              stx))
+        (define maybe-wrap-name (make-maybe-wrap-name name))
         (match fst
           ((quote-clause datum)
            (cons `(,qut ,datum) (recursive-expand ost available-variables)))
@@ -100,15 +116,12 @@
           ;; name总是由let form输入，amb form接收使用并传递给choices，以下的其他形式只会接收使用name
           ;; ---------------------------------------------------------------------
           ((let-clause name expr)
-           (list `(,lt
-                   ,(strip-context name)
-                   ,(wrap-expr (recursive-expand/name (strip-context name) (list expr) (cons name available-variables)))
-                   ,@(recursive-expand ost (cons name available-variables)))))
+           (list (make-let lt name expr ost available-variables recursive-expand/name)))
           ((amb-clause choices)
-           (cons `(,amb ,@(bindM choices (lambda (ch) (list (maybe-wrap-name (wrap-expr (recursive-expand/name name (list ch) available-variables)))))))
+           (cons (make-amb #:shuffle? #f amb choices available-variables name recursive-expand/name)
                  (recursive-expand ost available-variables)))
           ((ramb-clause choices)
-           (cons `(,amb ,@(shuffle (bindM choices (lambda (ch) (list (maybe-wrap-name (wrap-expr (recursive-expand/name name (list ch) available-variables))))))))
+           (cons (make-amb #:shuffle? #t amb choices available-variables name recursive-expand/name)
                  (recursive-expand ost available-variables)))
           ((lambda-clause unwrapped bodies)
            (cons (maybe-wrap-name `(,lmd ,(map strip-context unwrapped) ,(wrap-expr (recursive-expand bodies (append unwrapped available-variables)))))
