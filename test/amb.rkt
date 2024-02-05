@@ -15,7 +15,10 @@
   (displayln "Optimal")
   (print-and-test
    (amb-begin
-    (let make-queen (lambda (n) (amb (cons n 1) (cons n 2) (cons n 3) (cons n 4) (cons n 5) (cons n 6) (cons n 7) (cons n 8))))
+    (let make-queen
+        (lambda (n)
+          (let m (amb 1 2 3 4 5 6 7 8))
+          (cons n m)))
     (let make-and-merge (lambda (n o) (let q (make-queen n)) (if (check-current q o) (amb) (cons q o))))
     (reverse (amb-foldl make-and-merge null '(1 2 3 4 5 6 7 8))))
    (lambda (l1)
