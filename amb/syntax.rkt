@@ -1,5 +1,6 @@
 (module syntax "../base/main.rkt"
-  (require syntax/parse/define "interposition-points.rkt" (except-in "abstract.rkt" amb ramb)
+  (require syntax/parse/define
+           "interposition-points.rkt" (except-in "abstract.rkt" amb ramb) (only-in "procedure.rkt" n:procedure?)
            (for-syntax racket/match racket/list syntax/strip-context "../base/main.rkt" "utilities.rkt")
            (for-meta 2 "../base/main.rkt"))
   (provide amb-begin)
@@ -30,16 +31,49 @@
     (define inline?
       (lambda/curry/match
        ((avars sts)
+        (define inlined (syntax->list #'(;; Lists and Pairs
+                                         pair? null? cons car cdr null list? list list* build-list length
+                                         list-ref list-tail append reverse map andmap ormap for-each foldl foldr
+                                         filter remove remq remv remw remove* remq* remv* remw* sort member memw
+                                         memv memq memf findf assoc assw assv assq assf caar cadr cdar cddr caaar
+                                         caadr cadar caddr cdaar cdadr cddar cdddr caaaar caaadr caadar caaddr
+                                         cadaar cadadr caddar cadddr cdaaar cdaadr cdadar cdaddr cddaar cddadr
+                                         cdddar cddddr
+                                         ;; Numbers
+                                         number? complex? real? rational? integer? exact-integer?
+                                         exact-nonnegative-integer? exact-positive-integer? inexact-real? fixnum?
+                                         flonum? double-flonum? single-flonum? single-flonum-available?
+                                         zero? positive? negative? even? odd? exact? inexact? inexact->exact
+                                         exact->inexact real->single-flonum real->double-flonum + - * / quotient
+                                         remainder #; quotient/remainder modulo add1 sub1 abs max min gcd lcm
+                                         round floor ceiling truncate numerator denominator rationalize = < <= >
+                                         >= sqrt integer-sqrt #; integer-sqrt/remainder expt exp log sin cos tan
+                                         asin acos atan make-rectangular make-polar real-part imag-part magnitude
+                                         angle bitwise-ior bitwise-and bitwise-xor bitwise-not bitwise-bit-set?
+                                         bitwise-bit-field arithmetic-shift integer-length random random-seed
+                                         make-pseudo-random-generator pseudo-random-generator?
+                                         current-pseudo-random-generator pseudo-random-generator->vector
+                                         vector->pseudo-random-generator vector->pseudo-random-generator!
+                                         pseudo-random-generator-vector?
+                                         ;; Equality
+                                         equal? equal-always? eqv? eq? equal?/recur equal-always?/recur
+                                         ;; Hasket
+                                         bindM joinM mapM Right Left unitL unitS n:procedure?
+                                         )))
         (define (inlined-statement? st)
           (match st
             (v #:when (self-evaluating? avars v) #t)
-            ((let-clause _ expr) (inline? avars (list expr)))
+            ((let-clause _ expr) (inlined-statement? expr))
             ((amb-clause _) #f)
             ((ramb-clause _) #f)
-            ((lambda-clause _ bodies) (andmap ((inline? avars) . list) bodies))
-            ((begin-clause sts) (andmap ((inline? avars) . list) sts))
-            ((if-clause test then alt) (andmap ((inline? avars) . list) (list test then alt)))
-            ((app-clause proc args) (andmap (self-evaluating? avars) (cons proc args)))
+            ((lambda-clause _ bodies) (andmap inlined-statement? bodies))
+            ((begin-clause sts) (andmap inlined-statement? sts))
+            ((if-clause test then alt) (andmap inlined-statement? (list test then alt)))
+            ((app-clause proc args)
+             (and (match proc
+                    ((var-clause id) #:when (self-evaluating? avars id) (findf (identifier=? id) inlined))
+                    (expr (inlined-statement? expr)))
+                  (andmap inlined-statement? args)))
             (_ #f)))
         (andmap inlined-statement? sts))))
     (define (inline avars sts)
@@ -80,7 +114,7 @@
               ((quote-clause datum)
                (cons `(,qut ,datum) (recursive-expand ost available-variables)))
               ((var-clause id)
-               #:when (findf (identifier-symbol=? id) available-variables)
+               #:when (not (self-evaluating? available-variables id))
                (cons (strip-context id) (recursive-expand ost available-variables)))
               ((var-clause id)
                (cons `(,top . ,id) (recursive-expand ost available-variables)))
@@ -135,6 +169,7 @@
     (check-equal? (amb-begin (let op (amb + - * /)) (op 1 2)) '(3 -1 2 1/2))
     (check-equal? (amb-begin ((lambda (n1 n2) (+ n1 n2)) 1 2)) '(3))
     (check-equal? (amb-begin (if (amb #f #f #t) 1 2)) '(2 2 1))
+    (check-equal? (amb-begin ((lambda () (amb 1 2)))) '(1 2))
     (check-equal? (amb-begin (amb-apply (lambda (n1 n2 n3) (amb-apply + (list n1 n2 n3))) (list (amb 0 1) 2 3))) '(5 6))
     (check-equal? (amb-begin (amb-apply + (list (amb 0 1) 2 3))) '(5 6))
     (check-equal? (amb-begin (procedure? +)) '(#t))

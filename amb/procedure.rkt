@@ -28,8 +28,7 @@
 
     ;; Optimization
     (define (call/opt proc args)
-      (cond ((wrapper? proc) (apply (wrapper-procedure proc) (mapM unitL args)))
-            (else (apply (if (opt-wrapper? proc) (opt-wrapper-procedure proc) proc) args))))
+      (apply (if (opt-wrapper? proc) (opt-wrapper-procedure proc) proc) args))
 
     (define (n:procedure? v)
       (or (procedure? v) (wrapper? v) (opt-wrapper? v)))
