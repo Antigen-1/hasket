@@ -9,7 +9,7 @@
   (match-define (list amb-filter) (amb-begin (let amb-filter (lambda (p l) (if (null? l) null (if (p (car l)) (cons (car l) (amb-filter p (cdr l))) (amb-filter p (cdr l)))))) amb-filter))
 
   (module+ test
-    (require rackunit)
+    (require rackunit (only-in "abstract.rkt" amb))
 
     (check-equal? (amb-begin (amb-map add1 '(1 2 3 4))) '((2 3 4 5)))
     (check-equal? (amb-begin (amb-andmap not '(#f #f))) '(#t))

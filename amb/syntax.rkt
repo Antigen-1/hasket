@@ -1,93 +1,23 @@
 (module syntax "../base/main.rkt"
-  (require syntax/parse/define "interposition-points.rkt"
-           (for-syntax racket/match racket/list syntax/strip-context "../base/main.rkt")
+  (require syntax/parse/define "interposition-points.rkt" (except-in "abstract.rkt" amb ramb)
+           (for-syntax racket/match racket/list syntax/strip-context "../base/main.rkt" "utilities.rkt")
            (for-meta 2 "../base/main.rkt"))
-  (provide amb-begin (rename-out (n:amb amb)) ramb)
-
-  (define-syntax (n:amb stx)
-    (raise-syntax-error #f "Used out of amb-begin" stx))
-  (define-syntax (ramb stx)
-    (raise-syntax-error #f "Used out of amb-begin" stx))
+  (provide amb-begin)
 
   (begin-for-syntax
-    ;; Utilities
-    (define identifer-symbol=?
-      (lambda/curry/match
-       ((id1 id2)
-        (eq? (syntax->datum id1) (syntax->datum id2)))))
-    (define identifier=?
-      (lambda/curry/match
-       ((base v)
-        (and (identifier? v) (free-identifier=? base v)))))
     (define self-evaluating?
       (lambda/curry/match
        ((avars v)
         (match v
           ((quote-clause _) #t)
-          ((var-clause v) #:when (not (findf (identifer-symbol=? v) avars)) #t)
+          ((var-clause v) #:when (not (findf (identifier-symbol=? v) avars)) #t)
           (_ #f)))))
     (define (get-value v)
       (match v
         ((quote-clause v) `(,#'quote ,v))
         ((var-clause v) v)))
-    (define (wrap-expr stx)
-      ;; 打包为一个整体
-      #`(let () #,@stx))
-    (define ((make-maybe-wrap-name name) stx)
-      ;; 支持递归使用的工具函数
-      (if name
-          #`(letrec ((#,name #,stx))
-              #,name)
-          stx))
-
-    ;; Abstract syntax
-    (define-match-expander let-clause
-      (syntax-rules ()
-        ((_ name expr) (app syntax-e `(,(? (identifier=? #'let)) ,(? identifier? name) ,expr)))))
-    (define-match-expander amb-clause
-      (syntax-rules ()
-        ((_ choices) (app syntax-e `(,(? (identifier=? #'n:amb)) ,@choices)))))
-    (define-match-expander ramb-clause
-      (syntax-rules ()
-        ((_ choices) (app syntax-e `(,(? (identifier=? #'ramb)) ,@choices)))))
-    (define-match-expander lambda-clause
-      (syntax-rules ()
-        ((_ args bodies)
-         (app syntax-e
-              `(,(? (identifier=? #'lambda))
-                ,(app syntax-e (? list? (? (lambda (l) (andmap identifier? l)) args)))
-                ,@bodies)))))
-    (define-match-expander begin-clause
-      (syntax-rules ()
-        ((_ sts) (app syntax-e `(,(? (identifier=? #'begin)) ,@sts)))))
-    (define-match-expander if-clause
-      (syntax-rules ()
-        ((_ test then alt) (app syntax-e `(,(? (identifier=? #'if)) ,test ,then ,alt)))))
-    (define-match-expander app-clause
-      (syntax-rules ()
-        ((_ proc args) (app syntax-e (or `(,(? (identifier=? #'#%app)) ,proc ,@args) `(,proc ,@args))))))
-    (define-match-expander quote-clause
-      (syntax-rules ()
-        ((_ datum) (app syntax-e (or `(,(? (identifier=? #'quote)) ,datum) (? (not . (lambda (v) (or (symbol? v) (pair? v)))) datum))))))
-    (define-match-expander var-clause
-      (syntax-rules ()
-        ((_ var) (or (app syntax-e `(,(? (identifier=? #'#%top)) . ,(? identifier? var))) (? identifier? var)))))
 
     ;; Optimizers
-    (define (make-if nif test then alt avars expand)
-      (cond ((andmap (self-evaluating? avars) (list test then alt))
-             `(,#'#%app ,#'unitL ,(if (get-value test) (get-value then) (get-value alt))))
-            ((self-evaluating? avars test)
-             `(,#'if ,(get-value test) ,(wrap-expr (expand (list then) avars)) ,(wrap-expr (expand (list alt) avars))))
-            (else `(,nif ,(wrap-expr (expand (list test) avars))
-                         ,(wrap-expr (expand (list then) avars))
-                         ,(wrap-expr (expand (list alt) avars))))))
-    (define (make-let nlet name expr bodies avars expand/name)
-      (cond ((self-evaluating? avars expr)
-             `(,#'let ((,(strip-context name) (,#'#%app ,#'unitL ,(get-value expr))))
-                      ,@(expand/name #f bodies (cons name avars))))
-            (else `(,nlet ,(strip-context name) ,(wrap-expr (expand/name (strip-context name) (list expr) (cons name avars)))
-                          ,@(expand/name #f bodies (cons name avars))))))
     (define (make-amb #:shuffle? shuffle?
                       amb choices
                       avars name
@@ -97,48 +27,91 @@
       (cond ((andmap (self-evaluating? avars) choices)
              `(,#'#%app ,#'list ,@(post (map get-value choices))))
             (else `(,amb ,@(post (mapM (lambda (ch) ((make-maybe-wrap-name name) (wrap-expr (expand/name name (list ch) avars)))) choices))))))
+    (define inline?
+      (lambda/curry/match
+       ((avars sts)
+        (define (inlined-statement? st)
+          (match st
+            (v #:when (self-evaluating? avars v) #t)
+            ((let-clause _ expr) (inline? avars (list expr)))
+            ((amb-clause _) #f)
+            ((ramb-clause _) #f)
+            ((lambda-clause _ bodies) (andmap ((inline? avars) . list) bodies))
+            ((begin-clause sts) (andmap ((inline? avars) . list) sts))
+            ((if-clause test then alt) (andmap ((inline? avars) . list) (list test then alt)))
+            ((app-clause proc args) (andmap (self-evaluating? avars) (cons proc args)))
+            (_ #f)))
+        (andmap inlined-statement? sts))))
+    (define (inline avars sts)
+      (match sts
+        (`(,fst ,@ost)
+         (match fst
+           (v #:when (self-evaluating? avars v)
+              (cons (get-value v) (inline avars ost)))
+           ((var-clause v) (cons (strip-context v) (inline avars ost)))
+           ((let-clause name expr)
+            (list `(,#'letrec ((,(strip-context name) ,(wrap-expr (inline (cons name avars) (list expr)))))
+                              ,@(inline (cons name avars) ost))))
+           ((lambda-clause args bodies)
+            (cons `(,#'o:lambda (,@(map strip-context args)) ,@(inline (append args avars) bodies)) (inline avars ost)))
+           ((begin-clause sts)
+            (cons `(,#'begin ,@(inline avars sts)) (inline avars ost)))
+           ((if-clause test then alt)
+            (cons `(,#'if ,(wrap-expr (inline avars (list test)))
+                          ,(wrap-expr (inline avars (list then)))
+                          ,(wrap-expr (inline avars (list alt))))
+                  (inline avars ost)))
+           ((app-clause proc args)
+            (cons `(,#'o:#%app ,@(mapM (lambda (t) (wrap-expr (inline avars (list t)))) (cons proc args)))
+                  (inline avars ost)))
+           (_ (raise-syntax-error #f "A statement that cannot be inlined" fst))))
+        (`() null)))
 
     ;; 所有amb-begin内绑定的变量及其引用均去除了原有的context
     (define expand-statement-list
       (lambda/curry/match
-       ((lt qut app lmd top amb nif name `(,fst ,ost ...) available-variables)
+       ((lt qut app lmd top amb nif name (and all `(,fst ,ost ...)) available-variables)
         (define recursive-expand/name (expand-statement-list lt qut app lmd top amb nif))
         (define recursive-expand (recursive-expand/name #f))
         (define maybe-wrap-name (make-maybe-wrap-name name))
-        (match fst
-          ((quote-clause datum)
-           (cons `(,qut ,datum) (recursive-expand ost available-variables)))
-          ((var-clause id)
-           #:when (findf (identifer-symbol=? id) available-variables)
-           (cons (strip-context id) (recursive-expand ost available-variables)))
-          ((var-clause id)
-           (cons `(,top . ,id) (recursive-expand ost available-variables)))
-          ;; name总是由let form输入，amb form接收使用并传递给choices，以下的其他形式只会接收使用name
-          ;; ---------------------------------------------------------------------
-          ((let-clause name expr)
-           (list (make-let lt name expr ost available-variables recursive-expand/name)))
-          ((amb-clause choices)
-           (cons (make-amb #:shuffle? #f amb choices available-variables name recursive-expand/name)
-                 (recursive-expand ost available-variables)))
-          ((ramb-clause choices)
-           (cons (make-amb #:shuffle? #t amb choices available-variables name recursive-expand/name)
-                 (recursive-expand ost available-variables)))
-          ((lambda-clause unwrapped bodies)
-           (cons (maybe-wrap-name `(,lmd ,(map strip-context unwrapped) ,(wrap-expr (recursive-expand bodies (append unwrapped available-variables)))))
-                 (recursive-expand ost available-variables)))
-          ((begin-clause sts)
-           (cons (maybe-wrap-name `(,#'begin ,(wrap-expr (recursive-expand sts available-variables))))
-                 (recursive-expand ost available-variables)))
-          ((if-clause test then alt)
-           (cons (maybe-wrap-name (make-if nif test then alt available-variables recursive-expand))
-                 (recursive-expand ost available-variables)))
-          ((app-clause proc args)
-           (cons (maybe-wrap-name `(,app ,@(bindM (cons proc args) (lambda (t) (recursive-expand (list t) available-variables)))))
-                 (recursive-expand ost available-variables)))
-          ;; ---------------------------------------------------------------------
-          (_ (raise-syntax-error #f "Illegal statement" fst))))
-       ((_ _ _ _ _ _ _ _ `() _)
-        null)))
+        (if (inline? available-variables all)
+            (list (wrap-unitL (wrap-expr (inline available-variables all))))
+            (match fst
+              ((quote-clause datum)
+               (cons `(,qut ,datum) (recursive-expand ost available-variables)))
+              ((var-clause id)
+               #:when (findf (identifier-symbol=? id) available-variables)
+               (cons (strip-context id) (recursive-expand ost available-variables)))
+              ((var-clause id)
+               (cons `(,top . ,id) (recursive-expand ost available-variables)))
+              ;; name总是由let form输入，amb form接收使用并传递给choices，以下的其他形式只会接收使用name
+              ;; ---------------------------------------------------------------------
+              ((let-clause name expr)
+               (list `(,lt ,(strip-context name) ,(wrap-expr (recursive-expand/name (strip-context name) (list expr) (cons name available-variables)))
+                           ,@(recursive-expand ost (cons name available-variables)))))
+              ((amb-clause choices)
+               (cons (make-amb #:shuffle? #f amb choices available-variables name recursive-expand/name)
+                     (recursive-expand ost available-variables)))
+              ((ramb-clause choices)
+               (cons (make-amb #:shuffle? #t amb choices available-variables name recursive-expand/name)
+                     (recursive-expand ost available-variables)))
+              ((lambda-clause unwrapped bodies)
+               (cons (maybe-wrap-name `(,lmd ,(map strip-context unwrapped) ,(wrap-expr (recursive-expand bodies (append unwrapped available-variables)))))
+                     (recursive-expand ost available-variables)))
+              ((begin-clause sts)
+               (cons (maybe-wrap-name `(,#'begin ,(wrap-expr (recursive-expand sts available-variables))))
+                     (recursive-expand ost available-variables)))
+              ((if-clause test then alt)
+               (cons (maybe-wrap-name `(,nif ,(wrap-expr (recursive-expand (list test) available-variables))
+                                             ,(wrap-expr (recursive-expand (list then) available-variables))
+                                             ,(wrap-expr (recursive-expand (list alt) available-variables))))
+                     (recursive-expand ost available-variables)))
+              ((app-clause proc args)
+               (cons (maybe-wrap-name `(,app ,@(bindM (cons proc args) (lambda (t) (recursive-expand (list t) available-variables)))))
+                     (recursive-expand ost available-variables)))
+              ;; ---------------------------------------------------------------------
+              (_ (raise-syntax-error #f "Illegal statement" fst)))))
+       ((_ _ _ _ _ _ _ _ `() _) null)))
 
     (define (n:expand-statement-list sts) (expand-statement-list #'n:let #'n:quote #'n:#%app #'n:lambda #'n:#%top #'amb #'n:if #f sts null))
     )
@@ -150,7 +123,7 @@
            #,@(n:expand-statement-list (syntax->list #'(statement ...)))))))
 
   (module* test "../base/main.rkt"
-    (require rackunit (submod "..") "procedure.rkt"
+    (require rackunit (submod "..") "procedure.rkt" (only-in "abstract.rkt" amb ramb)
              (for-syntax "../base/main.rkt"))
 
     (check-equal? (amb-begin (amb 1)) '(1))
