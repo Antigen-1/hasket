@@ -31,7 +31,7 @@
     (define (make-if nif test then alt avars expand)
       (define nthen (wrap-expr (expand (list then) avars)))
       (define nalt (wrap-expr (expand (list alt) avars)))
-      (cond ((inline? avars (list test))
+      (cond ((inline? avars null (list test))
              `(,#'if ,(wrap-expr (inline avars (list test))) ,nthen ,nalt))
             (else `(,nif ,(wrap-expr (expand (list test) avars)) ,nthen ,nalt))))
     (define (make-app app proc args avars expand)
@@ -40,7 +40,7 @@
             (else `(,app ,@(mapM (lambda (t) (wrap-expr (expand (list t) avars))) (cons proc args))))))
     (define inline?
       (lambda/curry/match
-       ((avars sts)
+       ((avars navars sts)
         (define inlined (syntax->list #'(;; Lists and Pairs
                                          pair? null? cons car cdr null list? list list* build-list length
                                          list-ref list-tail append reverse map andmap ormap for-each foldl foldr
@@ -70,22 +70,32 @@
                                          ;; Hasket
                                          bindM joinM mapM Right Left unitL unitS n:procedure?
                                          )))
-        (define (inlined-statement? st)
-          (match st
-            (v #:when (self-evaluating? avars v) #t)
-            ((let-clause _ expr) (inlined-statement? expr))
-            ((amb-clause _) #f)
-            ((ramb-clause _) #f)
-            ((lambda-clause _ bodies) (andmap inlined-statement? bodies))
-            ((begin-clause sts) (andmap inlined-statement? sts))
-            ((if-clause test then alt) (andmap inlined-statement? (list test then alt)))
-            ((app-clause proc args)
-             (and (match proc
-                    ((var-clause id) #:when (self-evaluating? avars id) (findf (identifier=? id) inlined))
-                    (expr (inlined-statement? expr)))
-                  (andmap inlined-statement? args)))
-            (_ #f)))
-        (andmap inlined-statement? sts))))
+
+        (match sts
+          (`(,fst ,@ost)
+           (match fst
+             (v #:when (self-evaluating? avars v) (inline? avars navars ost))
+             ((let-clause name expr) (and (inline? avars (cons name navars) (list expr))
+                                          (inline? avars (cons name navars) ost)))
+             ((amb-clause _) #f)
+             ((ramb-clause _) #f)
+             ((lambda-clause _ bodies)
+              ;; 与let form中的name不同，在这里args是未知的输入，不能合并入可信任的标识符
+              (and (inline? avars navars bodies) (inline? avars navars ost)))
+             ((begin-clause sts) (andmap (inline? avars navars) (list sts ost)))
+             ((if-clause test then alt) (and (andmap ((inline? avars navars) . list) (list test then alt))
+                                             (inline? avars navars ost)))
+             ((app-clause proc args)
+              (and (match proc
+                     ((var-clause id)
+                      #:when (self-evaluating? avars id)
+                      (or (not (self-evaluating? navars id))
+                          (findf (identifier=? id) inlined)))
+                     (expr (inline? avars navars (list expr))))
+                   (andmap ((inline? avars navars) . list) args)
+                   (inline? avars navars ost)))
+             (_ #f)))
+          (`() #t)))))
     (define (inline avars sts)
       (match sts
         (`(,fst ,@ost)
@@ -118,7 +128,7 @@
         (define recursive-expand/name (expand-statement-list lt qut app lmd top amb nif))
         (define recursive-expand (recursive-expand/name #f))
         (define maybe-wrap-name (make-maybe-wrap-name name))
-        (if (inline? available-variables all)
+        (if (inline? available-variables null all)
             (list (wrap-unitL (wrap-expr (inline available-variables all))))
             (match fst
               ((quote-clause datum)
@@ -177,6 +187,7 @@
     (check-equal? (amb-begin (let op (amb + - * /)) (op 1 2)) '(3 -1 2 1/2))
     (check-equal? (amb-begin ((lambda (n1 n2) (+ n1 n2)) 1 2)) '(3))
     (check-equal? (amb-begin (if (amb #f #f #t) 1 2)) '(2 2 1))
+    (check-equal? (amb-begin (let amb 1) amb) '(1))
     (check-equal? (amb-begin ((lambda () (amb 1 2)))) '(1 2))
     (check-equal? (amb-begin (amb-apply (lambda (n1 n2 n3) (amb-apply + (list n1 n2 n3))) (list (amb 0 1) 2 3))) '(5 6))
     (check-equal? (amb-begin (amb-apply + (list (amb 0 1) 2 3))) '(5 6))
