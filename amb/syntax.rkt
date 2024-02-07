@@ -41,7 +41,9 @@
     (define inline?
       (lambda/curry/match
        ((avars navars sts)
-        (define inlined (syntax->list #'(;; Lists and Pairs
+        (define inlined (syntax->list #'(;; Booleans
+                                         boolean? not immutable?
+                                         ;; Lists and Pairs
                                          pair? null? cons car cdr null list? list list* build-list length
                                          list-ref list-tail append reverse map andmap ormap for-each foldl foldr
                                          filter remove remq remv remw remove* remq* remv* remw* sort member memw
