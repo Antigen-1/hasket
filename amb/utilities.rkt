@@ -15,8 +15,9 @@
     (lambda/curry/match
      (((and sts `(,_ ,_ ,@_)))
       ;; 打包为一个整体
-      #`(let () #,@sts))
-     ((`(,stx)) stx)))
+      `(,#'let () ,@sts))
+     ((`(,stx)) stx)
+     ((v) (raise-syntax-error #f "No expression" v))))
   (define ((make-maybe-wrap-name name) stx)
     ;; 支持递归使用的工具函数
     (if name

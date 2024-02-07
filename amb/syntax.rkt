@@ -70,7 +70,7 @@
                                          ;; Equality
                                          equal? equal-always? eqv? eq? equal?/recur equal-always?/recur
                                          ;; Hasket
-                                         bindM joinM mapM Right Left unitL unitS n:procedure?
+                                         bindM joinM mapM Right Left unitL unitS n:procedure? procedure?
                                          )))
 
         (match sts
@@ -173,11 +173,12 @@
   (define-syntax (amb-begin stx)
     (syntax-parse stx
       ((_ statement ...)
-       #`(let ()
-           #,@(n:expand-statement-list (syntax->list #'(statement ...)))))))
+       (datum->syntax
+        #'stx
+        (wrap-expr (n:expand-statement-list (syntax->list #'(statement ...))))))))
 
   (module* test "../base/main.rkt"
-    (require rackunit (submod "..") "procedure.rkt" (only-in "abstract.rkt" amb ramb)
+    (require rackunit racket/pretty (submod "..") "procedure.rkt" (only-in "abstract.rkt" amb ramb)
              (for-syntax "../base/main.rkt"))
 
     (check-equal? (amb-begin (amb 1)) '(1))
@@ -217,4 +218,24 @@
                     (3 2)))
     (let ((a 1))
       (check-equal? (amb-begin (add1 a)) '(2)))
+
+    (define-namespace-anchor anchor)
+    (define (check s pred)
+      (parameterize ((current-namespace (namespace-anchor->namespace anchor)))
+        (pretty-write s)
+        (displayln "=============>")
+        (define e ((syntax->datum . expand) s))
+        (pretty-write e)
+        (check-true (pred e))))
+    (define (check-two s1 s2)
+      (check s1 (lambda (v1) (let/cc cc (check s2 (lambda (v2) (cc (equal? v1 v2))))))))
+
+    (check-two '(unitL (if #f + -))
+               '(amb-begin (if #f + -)))
+    (check-two '(list 1 2)
+               '(amb-begin (amb 1 2)))
+    (check-two '(unitL +)
+               '(amb-begin (#%top . +)))
+    (check-two '(unitL 1)
+               '(amb-begin '1))
     ))
