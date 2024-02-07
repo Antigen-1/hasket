@@ -11,9 +11,12 @@
     (lambda/curry/match
      ((base v)
       (and (identifier? v) (free-identifier=? base v)))))
-  (define (wrap-expr stx)
-    ;; 打包为一个整体
-    #`(let () #,@stx))
+  (define wrap-expr
+    (lambda/curry/match
+     (((and sts `(,_ ,_ ,@_)))
+      ;; 打包为一个整体
+      #`(let () #,@sts))
+     ((`(,stx)) stx)))
   (define ((make-maybe-wrap-name name) stx)
     ;; 支持递归使用的工具函数
     (if name
