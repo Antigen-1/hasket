@@ -34,6 +34,10 @@
       (cond ((inline? avars (list test))
              `(,#'if ,(wrap-expr (inline avars (list test))) ,nthen ,nalt))
             (else `(,nif ,(wrap-expr (expand (list test) avars)) ,nthen ,nalt))))
+    (define (make-app app proc args avars expand)
+      (cond ((andmap (self-evaluating? avars) args)
+             `(,#'o1:#%app ,(wrap-expr (expand (list proc) avars)) ,@(mapM get-value args)))
+            (else `(,app ,@(mapM (lambda (t) (wrap-expr (expand (list t) avars))) (cons proc args))))))
     (define inline?
       (lambda/curry/match
        ((avars sts)
@@ -102,7 +106,7 @@
                           ,(wrap-expr (inline avars (list alt))))
                   (inline avars ost)))
            ((app-clause proc args)
-            (cons `(,#'o:#%app ,@(mapM (lambda (t) (wrap-expr (inline avars (list t)))) (cons proc args)))
+            (cons `(,#'o2:#%app ,@(mapM (lambda (t) (wrap-expr (inline avars (list t)))) (cons proc args)))
                   (inline avars ost)))
            (_ (raise-syntax-error #f "A statement that cannot be inlined" fst))))
         (`() null)))
@@ -145,7 +149,7 @@
                (cons (maybe-wrap-name (make-if nif test then alt available-variables recursive-expand))
                      (recursive-expand ost available-variables)))
               ((app-clause proc args)
-               (cons (maybe-wrap-name `(,app ,@(bindM (cons proc args) (lambda (t) (recursive-expand (list t) available-variables)))))
+               (cons (maybe-wrap-name (make-app app proc args available-variables recursive-expand))
                      (recursive-expand ost available-variables)))
               ;; ---------------------------------------------------------------------
               (_ (raise-syntax-error #f "Illegal statement" fst)))))

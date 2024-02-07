@@ -216,4 +216,5 @@
           @item{2024.2.1 添加了@racket[ramb]。}
           @item{2024.2.4 为@racket[amb-begin]添加了一个简单的实验性的优化器，并实现了一些高阶函数。}
           @item{2024.2.6 为@racket[amb-begin]添加和完善了优化器。}
+          @item{2024.2.7 为@racket[amb-begin]添加和完善了优化器。}
           ]

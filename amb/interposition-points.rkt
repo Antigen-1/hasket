@@ -2,7 +2,7 @@
   (require (for-syntax "../base/main.rkt")
            "procedure.rkt"
            syntax/parse/define)
-  (provide n:#%app n:lambda n:quote n:#%top n:if n:let o:lambda o:#%app amb)
+  (provide n:#%app n:lambda n:quote n:#%top n:if n:let o:lambda o2:#%app o1:#%app amb)
 
   (define-syntax-parse-rule (amb choice ...)
     (append choice ...))
@@ -24,8 +24,10 @@
   ;; Optimization
   (define-syntax-parse-rule (o:lambda (arg ...) body ...)
     (opt-wrap (lambda (arg ...) body ...)))
-  (define-syntax-parse-rule (o:#%app proc arg ...)
-    (call/opt proc (list arg ...)))
+  (define-syntax-parse-rule (o2:#%app proc arg ...)
+    (call/opt2 proc (list arg ...)))
+  (define-syntax-parse-rule (o1:#%app proc arg ...)
+    (call/opt1 proc (list arg ...)))
 
   ;; Sugar
   (define-syntax-parse-rule (n:let name expr body ...)

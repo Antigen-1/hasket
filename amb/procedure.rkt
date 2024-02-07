@@ -1,6 +1,6 @@
 (module procedure "../base/main.rkt"
   (require (submod racket/performance-hint begin-encourage-inline) racket/list)
-  (provide wrap opt-wrap call/opt apply-amb-procedure amb-apply n:procedure?)
+  (provide wrap opt-wrap call/opt2 call/opt1 apply-amb-procedure amb-apply n:procedure?)
   ;; Inline instructions
   (begin-encourage-inline
     (struct wrapper (procedure) #:constructor-name wrap)
@@ -27,8 +27,18 @@
       (bindM proc (lambda (p) (call-all p args))))
 
     ;; Optimization
-    (define (call/opt proc args)
+    (define (call/opt2 proc args)
+      ;; proc和args都可以优化
+      ;; 此时可以保证proc为opt-wrapper?或procedure?
       (apply (if (opt-wrapper? proc) (opt-wrapper-procedure proc) proc) args))
+    (define (call/opt1 proc args)
+      ;; proc不能优化，args可以优化
+      ;; 此时proc可为wrapper?、opt-wrapper?或procedure?组成的列表
+      (bindM
+       proc
+       (lambda (p)
+         (cond ((wrapper? p) (apply (wrapper-procedure p) (mapM unitL args)))
+               (else (unitL (apply (if (opt-wrapper? p) (opt-wrapper-procedure p) p) args)))))))
 
     (define (n:procedure? v)
       (or (procedure? v) (wrapper? v) (opt-wrapper? v)))
