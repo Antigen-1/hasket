@@ -25,8 +25,8 @@
                       expand/name
                       )
       (define post (if shuffle? shuffle values))
-      (cond ((andmap (self-evaluating? avars) choices)
-             `(,#'#%app ,#'list ,@(post (map get-value choices))))
+      (cond ((andmap ((inline? avars null) . list) choices)
+             `(,#'#%app ,#'list ,@(post (mapM (lambda (ch) (wrap-expr (inline avars (list ch)))) choices))))
             (else `(,amb ,@(post (mapM (lambda (ch) ((make-maybe-wrap-name name) (wrap-expr (expand/name name (list ch) avars)))) choices))))))
     (define (make-if nif test then alt avars expand)
       (define nthen (wrap-expr (expand (list then) avars)))
@@ -35,8 +35,8 @@
              `(,#'if ,(wrap-expr (inline avars (list test))) ,nthen ,nalt))
             (else `(,nif ,(wrap-expr (expand (list test) avars)) ,nthen ,nalt))))
     (define (make-app app proc args avars expand)
-      (cond ((andmap (self-evaluating? avars) args)
-             `(,#'o1:#%app ,(wrap-expr (expand (list proc) avars)) ,@(mapM get-value args)))
+      (cond ((andmap ((inline? avars null) . list) args)
+             `(,#'o1:#%app ,(wrap-expr (expand (list proc) avars)) ,@(mapM (lambda (a) (wrap-expr (inline avars (list a)))) args)))
             (else `(,app ,@(mapM (lambda (t) (wrap-expr (expand (list t) avars))) (cons proc args))))))
     (define inline?
       (lambda/curry/match
