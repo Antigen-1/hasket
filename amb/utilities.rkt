@@ -18,12 +18,6 @@
       `(,#'let () ,@sts))
      ((`(,stx)) stx)
      ((v) (raise-syntax-error #f "No expression" v))))
-  (define ((make-maybe-wrap-name name) stx)
-    ;; 支持递归使用的工具函数
-    (if name
-        #`(letrec ((#,name #,stx))
-            #,name)
-        stx))
   (define (wrap-unitL stx)
     #`(#%app unitL #,stx))
   )

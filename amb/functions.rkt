@@ -1,18 +1,25 @@
 (module func "../base/main.rkt"
-  (require "syntax.rkt" racket/match)
-  (provide (all-defined-out))
+  (require "syntax.rkt" "procedure.rkt" racket/match)
+  (provide (except-out (all-defined-out) Yv-like))
 
-  (match-define (list amb-foldl) (amb-begin (let amb-foldl (lambda (p o l) (if (null? l) o (amb-foldl p (p (car l) o) (cdr l))))) amb-foldl))
-  (match-define (list amb-foldr) (amb-begin (let amb-foldr (lambda (p o l) (if (null? l) o (p (car l) (amb-foldr p o (cdr l)))))) amb-foldr))
+  (match-define (list Yv) (amb-begin (let make (lambda (m k x) (k (lambda (y) (m m k y)) x))) (lambda (k) (lambda (x) (make make k x)))))
+  (match-define (list Yv-like) (amb-begin (lambda (ok) (amb-make-procedure/arbitrary-arity (Yv (lambda (m x) (ok (amb-make-procedure/arbitrary-arity m) x)))))))
+  (match-define (list lift) (amb-begin (lambda (p) (Yv-like (lambda (m x) (amb-apply (p m) x))))))
+  (match-define (list amb-foldl) (amb-begin (lift (lambda (m) (lambda (p o l) (if (null? l) o (m p (p (car l) o) (cdr l))))))))
+  (match-define (list amb-foldr) (amb-begin (lift (lambda (m) (lambda (p o l) (if (null? l) o (p (car l) (m p o (cdr l)))))))))
   (match-define (list amb-map) (amb-begin (lambda (p l) (amb-foldr (lambda (v r) (cons (p v) r)) null l))))
-  (match-define (list amb-andmap) (amb-begin (let amb-andmap (lambda (p l) (if (null? l) #t (if (p (car l)) (amb-andmap p (cdr l)) #f)))) amb-andmap))
-  (match-define (list amb-ormap) (amb-begin (let amb-ormap (lambda (p l) (if (null? l) #f (if (p (car l)) #t (amb-ormap p (cdr l)))))) amb-ormap))
+  (match-define (list amb-andmap) (amb-begin (lift (lambda (m) (lambda (p l) (if (null? l) #t (if (p (car l)) (m p (cdr l)) #f)))))))
+  (match-define (list amb-ormap) (amb-begin (lift (lambda (m) (lambda (p l) (if (null? l) #f (if (p (car l)) #t (m p (cdr l)))))))))
   (match-define (list amb-filtermap) (amb-begin (lambda (p l) (amb-foldr (lambda (v r) (let result (p v)) (if result (cons result r) r)) null l))))
   (match-define (list amb-filter) (amb-begin (lambda (p l) (amb-foldr (lambda (v r) (if (p v) (cons v r) r)) null l))))
 
   (module+ test
     (require rackunit (only-in "abstract.rkt" amb))
 
+    (let ((test-l1 (build-list 10 (lambda (_) (random))))
+          (test-l2 (build-list 10 (lambda (_) (random)))))
+      (check-equal? (amb-begin ((Yv (lambda (_ l) (length l))) (amb test-l1 test-l2))) (amb-begin (length (amb test-l1 test-l2)))))
+    (check-equal? (amb-begin ((lift (lambda (m) (lambda (n) (if (zero? n) n (m (if (> n 0) (sub1 n) (add1 n))))))) (random -100 100))) '(0))
     (check-equal? (amb-begin (amb-map add1 '(1 2 3 4))) '((2 3 4 5)))
     (check-equal? (amb-begin (amb-andmap not '(#f #f))) '(#t))
     (check-equal? (amb-begin (amb-ormap not '(#t #f #t))) '(#t))

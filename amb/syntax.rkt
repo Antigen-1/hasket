@@ -21,13 +21,13 @@
     ;; Optimizers
     (define (make-amb #:shuffle? shuffle?
                       amb choices
-                      avars name
-                      expand/name
+                      avars
+                      expand
                       )
       (define post (if shuffle? shuffle values))
       (cond ((andmap ((inline? avars null) . list) choices)
              `(,#'#%app ,#'list ,@(post (mapM (lambda (ch) (wrap-expr (inline avars (list ch)))) choices))))
-            (else `(,amb ,@(post (mapM (lambda (ch) ((make-maybe-wrap-name name) (wrap-expr (expand/name name (list ch) avars)))) choices))))))
+            (else `(,amb ,@(post (mapM (lambda (ch) (wrap-expr (expand (list ch) avars))) choices))))))
     (define (make-if nif test then alt avars expand)
       (define nthen (wrap-expr (expand (list then) avars)))
       (define nalt (wrap-expr (expand (list alt) avars)))
@@ -77,7 +77,7 @@
           (`(,fst ,@ost)
            (match fst
              (v #:when (self-evaluating? avars v) (inline? avars navars ost))
-             ((let-clause name expr) (and (inline? avars (cons name navars) (list expr))
+             ((let-clause name expr) (and (inline? avars navars (list expr))
                                           (inline? avars (cons name navars) ost)))
              ((amb-clause _) #f)
              ((ramb-clause _) #f)
@@ -106,8 +106,8 @@
               (cons (get-value v) (inline avars ost)))
            ((var-clause v) (cons (strip-context v) (inline avars ost)))
            ((let-clause name expr)
-            (list `(,#'letrec ((,(strip-context name) ,(wrap-expr (inline (cons name avars) (list expr)))))
-                              ,@(inline (cons name avars) ost))))
+            (list `(,#'let ((,(strip-context name) ,(wrap-expr (inline avars (list expr)))))
+                           ,@(inline (cons name avars) ost))))
            ((lambda-clause args bodies)
             (cons `(,#'o:lambda (,@(map strip-context args)) ,@(inline (append args avars) bodies)) (inline avars ost)))
            ((begin-clause sts)
@@ -126,10 +126,8 @@
     ;; 所有amb-begin内绑定的变量及其引用均去除了原有的context
     (define expand-statement-list
       (lambda/curry/match
-       ((lt qut app lmd top amb nif name (and all `(,fst ,ost ...)) available-variables)
-        (define recursive-expand/name (expand-statement-list lt qut app lmd top amb nif))
-        (define recursive-expand (recursive-expand/name #f))
-        (define maybe-wrap-name (make-maybe-wrap-name name))
+       ((lt qut app lmd top amb nif (and all `(,fst ,ost ...)) available-variables)
+        (define recursive-expand (expand-statement-list lt qut app lmd top amb nif))
         (if (inline? available-variables null all)
             (list (wrap-unitL (wrap-expr (inline available-variables all))))
             (match fst
@@ -143,31 +141,31 @@
               ;; name总是由let form输入，amb form接收使用并传递给choices，以下的其他形式只会接收使用name
               ;; ---------------------------------------------------------------------
               ((let-clause name expr)
-               (list `(,lt ,(strip-context name) ,(wrap-expr (recursive-expand/name (strip-context name) (list expr) (cons name available-variables)))
+               (list `(,lt ,(strip-context name) ,(wrap-expr (recursive-expand (list expr) available-variables))
                            ,@(recursive-expand ost (cons name available-variables)))))
               ((amb-clause choices)
-               (cons (make-amb #:shuffle? #f amb choices available-variables name recursive-expand/name)
+               (cons (make-amb #:shuffle? #f amb choices available-variables recursive-expand)
                      (recursive-expand ost available-variables)))
               ((ramb-clause choices)
-               (cons (make-amb #:shuffle? #t amb choices available-variables name recursive-expand/name)
+               (cons (make-amb #:shuffle? #t amb choices available-variables recursive-expand)
                      (recursive-expand ost available-variables)))
               ((lambda-clause unwrapped bodies)
-               (cons (maybe-wrap-name `(,lmd ,(map strip-context unwrapped) ,(wrap-expr (recursive-expand bodies (append unwrapped available-variables)))))
+               (cons `(,lmd ,(map strip-context unwrapped) ,(wrap-expr (recursive-expand bodies (append unwrapped available-variables))))
                      (recursive-expand ost available-variables)))
               ((begin-clause sts)
-               (cons (maybe-wrap-name `(,#'begin ,(wrap-expr (recursive-expand sts available-variables))))
+               (cons `(,#'begin ,(wrap-expr (recursive-expand sts available-variables)))
                      (recursive-expand ost available-variables)))
               ((if-clause test then alt)
-               (cons (maybe-wrap-name (make-if nif test then alt available-variables recursive-expand))
+               (cons (make-if nif test then alt available-variables recursive-expand)
                      (recursive-expand ost available-variables)))
               ((app-clause proc args)
-               (cons (maybe-wrap-name (make-app app proc args available-variables recursive-expand))
+               (cons (make-app app proc args available-variables recursive-expand)
                      (recursive-expand ost available-variables)))
               ;; ---------------------------------------------------------------------
               (_ (raise-syntax-error #f "Illegal statement" fst)))))
-       ((_ _ _ _ _ _ _ _ `() _) null)))
+       ((_ _ _ _ _ _ _ `() _) null)))
 
-    (define (n:expand-statement-list sts) (expand-statement-list #'n:let #'n:quote #'n:#%app #'n:lambda #'n:#%top #'amb #'n:if #f sts null))
+    (define (n:expand-statement-list sts) (expand-statement-list #'n:let #'n:quote #'n:#%app #'n:lambda #'n:#%top #'amb #'n:if sts null))
     )
 
   (define-syntax (amb-begin stx)
@@ -194,11 +192,13 @@
     (check-equal? (amb-begin ((lambda () (amb 1 2)))) '(1 2))
     (check-equal? (amb-begin (amb-apply (lambda (n1 n2 n3) (amb-apply + (list n1 n2 n3))) (list (amb 0 1) 2 3))) '(5 6))
     (check-equal? (amb-begin (amb-apply + (list (amb 0 1) 2 3))) '(5 6))
+    (check-equal? (amb-begin (amb-apply (amb-make-procedure/arbitrary-arity length) '(1 2))) '(2))
+    (check-equal? (amb-begin (amb-apply (amb-make-procedure/arbitrary-arity (lambda (ns) (length ns))) '(1 2))) '(2))
+    (check-equal? (amb-begin (amb-apply (amb-make-procedure/arbitrary-arity (lambda (ns) (length ns))) (list (amb 1 3) 2))) '(2 2))
     (check-equal? (amb-begin (procedure? +)) '(#t))
     (check-equal? (amb-begin (procedure? (lambda (a) a))) '(#f))
     (check-equal? (amb-begin (n:procedure? +)) '(#t))
     (check-equal? (amb-begin (n:procedure? (lambda (a) a))) '(#t))
-    (check-equal? (amb-begin (let map (lambda (p l) (if (null? l) null (cons (p (car l)) (map p (cdr l)))))) (map add1 (list 1 2))) '((2 3)))
     (check-equal? (amb-begin (if (begin (let a (amb #f #t)) a) 1 2)) '(2 1))
     (check-equal? (amb-begin (if #t 1 (amb))) '(1))
     (check-equal? (amb-begin (let make (lambda () (amb 1 2 3)))

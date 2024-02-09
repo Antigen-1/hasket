@@ -3,6 +3,6 @@
   (provide (all-from-out "syntax.rkt")
            (rename-out (n:procedure? amb-procedure?)
                        (procedure? amb-primitive?))
-           amb-apply
+           amb-apply amb-make-procedure/arbitrary-arity
            (all-from-out "functions.rkt")
            amb ramb))
