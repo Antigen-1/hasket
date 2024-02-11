@@ -174,7 +174,7 @@
       ((_ statement ...)
        (datum->syntax
         #'stx
-        (wrap-expr (n:expand-statement-list (syntax->list #'(statement ...))))))))
+        `(,#'n:begin ,@(n:expand-statement-list (syntax->list #'(statement ...))))))))
 
   (module* test "../base/main.rkt"
     (require rackunit racket/pretty (submod "..") "procedure.rkt" (only-in "abstract.rkt" amb ramb)
@@ -190,6 +190,7 @@
     (check-equal? (amb-begin ((lambda (n1 n2) (+ n1 n2)) 1 2)) '(3))
     (check-equal? (amb-begin (if (amb #f #f #t) 1 2)) '(2 2 1))
     (check-equal? (amb-begin (let amb 1) amb) '(1))
+    (check-equal? (amb-begin (amb) 1) null)
     (check-equal? (amb-begin ((lambda () (amb 1 2)))) '(1 2))
     (check-equal? (amb-begin (amb-apply (lambda (n1 n2 n3) (amb-apply + (list n1 n2 n3))) (list (amb 0 1) 2 3))) '(5 6))
     (check-equal? (amb-begin (amb-apply + (list (amb 0 1) 2 3))) '(5 6))
