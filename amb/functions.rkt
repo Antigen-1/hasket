@@ -1,7 +1,8 @@
 (module func "../base/main.rkt"
-  (require "syntax.rkt" "procedure.rkt" racket/match)
+  (require "syntax.rkt" "procedure.rkt" "abstract.rkt" racket/match)
   (provide (except-out (all-defined-out) Yv-like))
 
+  (match-define (list amb-require) (amb-begin (lambda (test) (if test #t (amb)))))
   (match-define (list Yv) (amb-begin (let make (lambda (m k x) (k (lambda (y) (m m k y)) x))) (lambda (k) (lambda (x) (make make k x)))))
   (match-define (list Yv-like) (amb-begin (lambda (ok) (amb-make-procedure/arbitrary-arity (Yv (lambda (m x) (ok (amb-make-procedure/arbitrary-arity m) x)))))))
   (match-define (list lift) (amb-begin (lambda (p) (Yv-like (lambda (m x) (amb-apply (p m) x))))))
@@ -10,12 +11,14 @@
   (match-define (list amb-map) (amb-begin (lambda (p l) (amb-foldr (lambda (v r) (cons (p v) r)) null l))))
   (match-define (list amb-andmap) (amb-begin (lift (lambda (m) (lambda (p l) (if (null? l) #t (if (p (car l)) (m p (cdr l)) #f)))))))
   (match-define (list amb-ormap) (amb-begin (lift (lambda (m) (lambda (p l) (if (null? l) #f (if (p (car l)) #t (m p (cdr l)))))))))
-  (match-define (list amb-filtermap) (amb-begin (lambda (p l) (amb-foldr (lambda (v r) (let result (p v)) (if result (cons result r) r)) null l))))
+  (match-define (list amb-filter-map) (amb-begin (lambda (p l) (amb-foldr (lambda (v r) (let result (p v)) (if result (cons result r) r)) null l))))
   (match-define (list amb-filter) (amb-begin (lambda (p l) (amb-foldr (lambda (v r) (if (p v) (cons v r) r)) null l))))
 
   (module+ test
     (require rackunit (only-in "abstract.rkt" amb))
 
+    (check-equal? (amb-begin (let t (procedure? +)) (amb-require t) t) '(#t))
+    (check-equal? (amb-begin (let t (procedure? 1)) (amb-require t) t) '())
     (let ((test-l1 (build-list 10 (lambda (_) (random))))
           (test-l2 (build-list 10 (lambda (_) (random)))))
       (check-equal? (amb-begin ((Yv (lambda (_ l) (length l))) (amb test-l1 test-l2))) (amb-begin (length (amb test-l1 test-l2)))))
@@ -25,5 +28,5 @@
     (check-equal? (amb-begin (amb-ormap not '(#t #f #t))) '(#t))
     (check-equal? (amb-begin (amb-foldl + 0 (list (amb 1 2 3) 4))) '(5 6 7))
     (check-equal? (amb-begin (amb-foldr cons null (list (amb 1 2) 3 4 5))) '((1 3 4 5) (2 3 4 5)))
-    (check-equal? (amb-begin (amb-filtermap (lambda (a) (if (odd? a) a #f)) '(1 2 3 4 5 6 7 8 9 10))) '((1 3 5 7 9)))
+    (check-equal? (amb-begin (amb-filter-map (lambda (a) (if (odd? a) a #f)) '(1 2 3 4 5 6 7 8 9 10))) '((1 3 5 7 9)))
     (check-equal? (amb-begin (amb-filter not (list 1 2 #f #t 3))) '((#f)))))

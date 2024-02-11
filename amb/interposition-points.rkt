@@ -2,7 +2,7 @@
   (require (for-syntax "../base/main.rkt")
            "procedure.rkt"
            syntax/parse/define)
-  (provide n:#%app n:lambda n:quote n:#%top n:if n:let o:lambda o2:#%app o1:#%app amb)
+  (provide n:#%app n:lambda n:quote n:#%top n:if n:let n:begin o:lambda o2:#%app o1:#%app amb)
 
   (define-syntax-parse-rule (amb choice ...)
     (append choice ...))
@@ -31,4 +31,8 @@
 
   ;; Sugar
   (define-syntax-parse-rule (n:let name expr body ...)
-    (n:#%app (n:lambda (name) body ...) expr)))
+    (n:#%app (n:lambda (name) body ...) expr))
+  (define-syntax-parser n:begin
+    ((_ st1 st2 ost ...)
+     #'(n:#%app (n:lambda (_) (n:begin st2 ost ...)) st1))
+    ((_ st1) #'st1)))
