@@ -144,7 +144,7 @@
                (cons (strip-context id) (recursive-expand ost available-variables)))
               ((let-clause name expr)
                (list `(,lt ,(strip-context name) ,(wrap-expr (recursive-expand (list expr) available-variables))
-                           ,@(recursive-expand ost (cons name available-variables)))))
+                           (,bg ,@(recursive-expand ost (cons name available-variables))))))
               ((amb-clause choices)
                (cons (make-amb #:shuffle? #f amb choices available-variables recursive-expand)
                      (recursive-expand ost available-variables)))
