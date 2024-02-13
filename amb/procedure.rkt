@@ -51,5 +51,5 @@
     (define (amb-make-procedure/arbitrary-arity proc)
       (wrap (lambda args (call/opt1 (unitL proc) (unitL (append* args))))))
     (define Yv (let ((make (lambda (m k x) (call/opt1 k (cons (wrap (lambda (y) (m m k y))) x)))))
-                 (wrap (lambda (k) (unitL (wrap (lambda (x) (make make k x))))))))
+                 (lambda (k) (wrap (lambda (x) (make make (unitL k) x))))))
     ))
