@@ -1,6 +1,6 @@
 (module procedure "../base/main.rkt"
   (require (submod racket/performance-hint begin-encourage-inline) racket/list)
-  (provide wrap opt-wrap call/opt2 call/opt1 apply-amb-procedure amb-apply amb-make-procedure/arbitrary-arity n:procedure?)
+  (provide wrap opt-wrap call/opt2 call/opt1 apply-amb-procedure amb-apply amb-make-procedure/arbitrary-arity Yv n:procedure?)
   ;; Inline instructions
   (begin-encourage-inline
     (struct wrapper (procedure) #:constructor-name wrap)
@@ -50,4 +50,6 @@
          (apply call/opt1 proc args))))
     (define (amb-make-procedure/arbitrary-arity proc)
       (wrap (lambda args (call/opt1 (unitL proc) (unitL (append* args))))))
+    (define Yv (let ((make (lambda (m k x) (call/opt1 k (cons (wrap (lambda (y) (m m k y))) x)))))
+                 (wrap (lambda (k) (unitL (wrap (lambda (x) (make make k x))))))))
     ))

@@ -3,7 +3,6 @@
   (provide (except-out (all-defined-out) Yv-like))
 
   (match-define (list amb-require) (amb-begin (lambda (test) (if test #t (amb)))))
-  (match-define (list Yv) (amb-begin (let make (lambda (m k x) (k (lambda (y) (m m k y)) x))) (lambda (k) (lambda (x) (make make k x)))))
   (match-define (list Yv-like) (amb-begin (lambda (ok) (amb-make-procedure/arbitrary-arity (Yv (lambda (m x) (ok (amb-make-procedure/arbitrary-arity m) x)))))))
   (match-define (list lift) (amb-begin (lambda (p) (Yv-like (lambda (m x) (amb-apply (p m) x))))))
   (match-define (list amb-foldl) (amb-begin (lift (lambda (m) (lambda (p o l) (if (null? l) o (m p (p (car l) o) (cdr l))))))))
