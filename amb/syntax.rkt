@@ -1,7 +1,7 @@
 (module syntax "../base/main.rkt"
   (require syntax/parse/define
            "interposition-points.rkt" (except-in "abstract.rkt" amb ramb) (only-in "procedure.rkt" n:procedure?)
-           (for-syntax racket/match racket/list syntax/strip-context "../base/main.rkt" "utilities.rkt")
+           (for-syntax racket/match racket/list syntax/strip-context syntax/parse/define "../base/main.rkt" "utilities.rkt")
            (for-meta 2 "../base/main.rkt"))
   (provide amb-begin)
 
@@ -124,13 +124,28 @@
            (_ (raise-syntax-error #f "A statement that cannot be inlined" fst))))
         (`() null)))
 
+    (define-syntax (optimize-pipeline stx)
+      (syntax-parse stx
+        ((_ sts (test then) ... fallback)
+         (with-syntax ((it ((car syntax-e . syntax-local-introduce) #'(it stx))))
+           #'(>>> sts
+                  ($ (Right . (lambda/curry/match (((errorR (at value _))) value))))
+                  (lambda (it) (if test (Left then) (Right it)))
+                  ...
+                  (Right . (lambda (it) fallback)))))))
+
     ;; 所有amb-begin内绑定的变量及其引用均去除了原有的context
     (define expand-statement-list
       (lambda/curry/match
-       ((lt qut app lmd top amb nif bg (and all `(,fst ,ost ...)) available-variables)
+       ((lt qut app lmd top amb nif bg all available-variables)
         (define recursive-expand (expand-statement-list lt qut app lmd top amb nif bg))
-        (if (inline? available-variables null all)
-            (list (wrap-unitL (wrap-expr (inline available-variables all))))
+        (optimize-pipeline
+         all
+         ((and (inline? available-variables null it) (not (null? it)))
+          ;; The boundary between inlined code and code that is not inlined
+          (list (wrap-unitL (wrap-expr (inline available-variables it)))))
+         (match it
+           (`(,fst ,@ost)
             (match fst
               ;; Self-evaluating
               ;; ---------------------------------------------------------------------
@@ -163,8 +178,8 @@
               ((app-clause proc args)
                (cons (make-app app proc args available-variables recursive-expand)
                      (recursive-expand ost available-variables)))
-              (_ (raise-syntax-error #f "Illegal statement" fst)))))
-       ((_ _ _ _ _ _ _ _ `() _) null)))
+              (_ (raise-syntax-error #f "Illegal statement" fst))))
+           (`() null))))))
 
     (define (n:expand-statement-list sts) (expand-statement-list #'n:let #'n:quote #'n:#%app #'n:lambda #'n:#%top #'amb #'n:if #'n:begin sts null))
     )

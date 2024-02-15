@@ -1,5 +1,5 @@
 (module test "../main.rkt"
-  (require rackunit racket/stream)
+  (require rackunit racket/stream "../unsafe.rkt")
 
   (define tree '(a (b) c))
   (define a (Right . add1))

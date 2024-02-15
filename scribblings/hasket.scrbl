@@ -1,5 +1,6 @@
 #lang scribble/manual
 @require[@for-label["../main.rkt"
+                    "../unsafe.rkt"
                     (except-in racket/base #%app)
                     racket/contract
                     racket/function
@@ -78,7 +79,11 @@
          (>>>/steps catch-or-step ...)
          #:grammar ([catch-or-step catch step])]
 
-这些语法实现了@deftech{pipeline}。
+要使用这些宏，请使用：
+@defmodule[hasket/unsafe]
+原因见“优化”一节。
+
+这些语法实现了内部使用的@deftech{pipeline}。
 @racket[value]可以是任意值；step则接受这个任意值，而必须使用@racket[Left]和@racket[Right]返回。
 
 @racket[>>>/steps]的功能是建立复合的step；另外，如果在@racket[>>>/steps]中使用@racket[$]，catch的保护不会超出@racket[>>>/steps]。
@@ -186,11 +191,10 @@
 主要是通过@racket[>>>]、@racket[>>>/steps]、@racket[Left]、@racket[Right]和@racket[$]这些@deftech{hints}消除一些不必要的（un）boxing和step，
 但也因此带来了一个问题：有一些step——甚至是一些有问题的step（包括语法问题和运行时的问题）——会被消除。
 
-在这里作者不推荐使用者依赖这个设计缺陷（当然也可以理解为一个特性）来设计程序。
-但作者也不会对此作出更改，因为根本上来讲它只会消除而不会引入安全问题。
-使用者如果觉得有必要请自行添加相关检查。
-
-另外作者并未实现一套完整的@italic{evaluation model}，只是通过那些@tech{hints}作优化。因此简单地封装这些函数和宏即可关闭优化器。
+在这里作者不推荐使用者依赖这个设计缺陷来设计程序。
+但作者也不会对此作出更改，而仅仅是标记为@italic{unsafe}，因为根本上来讲它只会消除而不会引入安全问题。
+使用者如果觉得有必要请自行添加相关检查，且作者并未实现一套完整的@italic{evaluation model}，只是通过那些@tech{hints}作优化。
+因此简单地封装这些函数和宏即可关闭优化器。
 
 @section{兼容性}
 
@@ -219,4 +223,5 @@
           @item{2024.2.7 为@racket[amb-begin]添加和完善了优化器。}
           @item{2024.2.9 修复了@racket[amb-begin]的递归，取消了直接语法糖支持，改为使用工具函数。}
           @item{2024.2.11 修改了@racket{amb-begin}中@racket{begin}的语义。}
+          @item{2024.2.15 将@tech{pipeline}标记为@italic{unsafe}。}
           ]
