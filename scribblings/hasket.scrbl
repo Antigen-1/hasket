@@ -120,8 +120,6 @@
 
 另外要注意，@racket[$]是一个关键字，请不要@italic{shallow}其绑定。在@tech{pipeline}以外使用@racket[$]是一个语法错误。
 
-@section{实验}
-
 @subsection{Amb}
 
 @defform[#:literals (let begin quote lambda if amb ramb #%app #%top)
@@ -141,6 +139,8 @@
                      (ramb choice ...)
                      var
                      (#%top . var)])]
+
+@bold{仍处于实验阶段，接口可能发生改变！}
 
 @todo-itemlist[#:done "实现基础语法和计算模型"
                #:working "实现一些常用函数"
