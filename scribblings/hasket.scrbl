@@ -69,28 +69,6 @@
 
 @section{语法}
 
-@defform[#:kind "catch syntax"
-         ($ catch-or-step ...)
-         #:grammar ([catch-or-step catch step])]
-@defform[#:kind "pipeline syntax"
-         (>>> value catch-or-step ...)
-         #:grammar ([catch-or-step catch step])]
-@defform[#:kind "compound step syntax"
-         (>>>/steps catch-or-step ...)
-         #:grammar ([catch-or-step catch step])]
-
-要使用这些宏，请使用：
-@defmodule[hasket/unsafe]
-原因见“优化”一节。
-
-这些语法实现了内部使用的@deftech{pipeline}。
-@racket[value]可以是任意值；step则接受这个任意值，而必须使用@racket[Left]和@racket[Right]返回。
-
-@racket[>>>/steps]的功能是建立复合的step；另外，如果在@racket[>>>/steps]中使用@racket[$]，catch的保护不会超出@racket[>>>/steps]。
-@racket[>>>]则将step组合起来，形成易于与@racket[racket]交互的@tech{pipeline}。
-
-另外要注意，@racket[$]是一个关键字，请不要@italic{shallow}其绑定。在@tech{pipeline}以外使用@racket[$]是一个语法错误。
-
 @defform[#:literals (!)
          (lambda/curry/match maybe-name maybe-contract match-clause ...)
          #:grammar ([maybe-name (code:line #:name name)]
@@ -117,6 +95,30 @@
                     [first-proc id (lambda p ...) (lambda/curry/match p ...) (curry/n p ...)])]
 
 支持了函数组合，实际上是@racket[compose1]的别名。第一个函数对racket的reader作了一些妥协。
+
+@subsection{Internal Pipelines}
+
+@defform[#:kind "catch syntax"
+         ($ catch-or-step ...)
+         #:grammar ([catch-or-step catch step])]
+@defform[#:kind "pipeline syntax"
+         (>>> value catch-or-step ...)
+         #:grammar ([catch-or-step catch step])]
+@defform[#:kind "compound step syntax"
+         (>>>/steps catch-or-step ...)
+         #:grammar ([catch-or-step catch step])]
+
+要使用这些宏，请使用：
+@defmodule[hasket/unsafe]
+原因见“优化”一节。
+
+这些语法实现了内部使用的@deftech{pipeline}。
+@racket[value]可以是任意值；step则接受这个任意值，而必须使用@racket[Left]和@racket[Right]返回。
+
+@racket[>>>/steps]的功能是建立复合的step；另外，如果在@racket[>>>/steps]中使用@racket[$]，catch的保护不会超出@racket[>>>/steps]。
+@racket[>>>]则将step组合起来，形成易于与@racket[racket]交互的@tech{pipeline}。
+
+另外要注意，@racket[$]是一个关键字，请不要@italic{shallow}其绑定。在@tech{pipeline}以外使用@racket[$]是一个语法错误。
 
 @section{实验}
 
