@@ -17,7 +17,7 @@
   (define-syntax-parse-rule (n:quote datum)
     (unitL (quote datum)))
   (define-syntax-parse-rule (n:lambda (arg ...) body ...)
-    (unitL (wrap (lambda (arg ...) body ...))))
+    (unitL (wrap (lambda (arg ...) (let ((arg (unitL arg)) ...) body ...)))))
   (define-syntax-parse-rule (n:#%top . v)
     (unitL v))
 

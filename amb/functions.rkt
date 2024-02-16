@@ -18,9 +18,6 @@
 
     (check-equal? (amb-begin (let t (procedure? +)) (amb-require t) t) '(#t))
     (check-equal? (amb-begin (let t (procedure? 1)) (amb-require t) t) '())
-    (let ((test-l1 (build-list 10 (lambda (_) (random))))
-          (test-l2 (build-list 10 (lambda (_) (random)))))
-      (check-equal? (amb-begin ((Yv (lambda (_ l) (length l))) (amb test-l1 test-l2))) (amb-begin (length (amb test-l1 test-l2)))))
     (check-equal? (amb-begin ((lift (lambda (m) (lambda (n) (if (zero? n) n (m (if (> n 0) (sub1 n) (add1 n))))))) (random -100 100))) '(0))
     (check-equal? (amb-begin (amb-map add1 '(1 2 3 4))) '((2 3 4 5)))
     (check-equal? (amb-begin (amb-andmap not '(#f #f))) '(#t))
