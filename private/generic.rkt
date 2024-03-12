@@ -1,5 +1,5 @@
 #lang racket/base
-(require racket/generic racket/list racket/stream "monad.rkt")
+(require racket/generic racket/list racket/stream racket/contract "monad.rkt")
 (provide (rename-out (n:bindP bindP) (n:bindPL bindPL) (n:resetP resetP))
          Left Right unitL unitS
          bindM joinM mapM
@@ -17,6 +17,8 @@
 (define Right (compose1 wrapper unitP))
 
 (define (unitS v) (in-list (list v)))
+(define ((streamof pred) v)
+  (and (stream? v) (stream-andmap pred v)))
 
 (define (fallback-joinM m)
   (bindM m (lambda (a) a)))
@@ -30,7 +32,10 @@
                           (define mapM map)
                           (define joinM append*)]
                    [stream? (define (bindM s p) (apply stream-append (stream->list (stream-map p s))))
-                            (define mapM stream-map)]
+                            (define mapM stream-map)
+                            (define/contract joinM
+                              (-> (streamof stream?) stream?)
+                              fallback-joinM)]
                    [wrapper? (define bindM n:bindP)
                              (define (mapM p m) (n:bindP m (lambda (v) (Right (p v)))))]
                    )
